@@ -62,15 +62,15 @@ func (grok *Grok) Compile(pattern string) error {
 func (grok *Grok) Match(text string) *Match {
 	t := C.CString(text)
 	defer C.free(unsafe.Pointer(t))
-	var cmatch *C.grok_match_t
+	var cmatch C.grok_match_t
 
-	ret := C.grok_execn(grok.g, t, C.int(len(text)), cmatch)
+	ret := C.grok_execn(grok.g, t, C.int(len(text)), &cmatch)
 	if ret != GROK_OK {
 		return nil
 	}
 
 	match := new(Match)
-	match.gm = cmatch
+	match.gm = &cmatch
 
 	return match
 }

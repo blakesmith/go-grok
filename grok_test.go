@@ -39,4 +39,7 @@ func TestDayCompileAndMatch(t *testing.T) {
 	if match == nil {
 		t.Fatal("Unable to match!")
 	}
+	if match.gm == nil {
+		t.Fatal("Match object not correctly populated")
+	}
 }
