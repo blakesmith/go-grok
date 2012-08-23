@@ -42,4 +42,11 @@ func TestDayCompileAndMatch(t *testing.T) {
 	if match.gm == nil {
 		t.Fatal("Match object not correctly populated")
 	}
+
+	if match.Subject != text {
+		t.Fatal("Subject is equal to:", match.Subject)
+	}
+	if match.Grok != g {
+		t.Fatal("Grok not correctly set")
+	}
 }

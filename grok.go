@@ -23,6 +23,8 @@ type Grok struct {
 
 type Match struct {
 	gm *C.grok_match_t
+	Grok *Grok
+	Subject string
 }
 
 func New() *Grok {
@@ -71,6 +73,8 @@ func (grok *Grok) Match(text string) *Match {
 
 	match := new(Match)
 	match.gm = &cmatch
+	match.Subject = C.GoString(cmatch.subject)
+	match.Grok = grok
 
 	return match
 }
