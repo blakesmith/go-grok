@@ -6,6 +6,8 @@ import (
 
 func TestNew(t *testing.T) {
 	g := New()
+	defer g.Free()
+
 	if g == nil && g.g == nil {
 		t.Fatal("Failed to initialize grok")
 	}
@@ -13,6 +15,8 @@ func TestNew(t *testing.T) {
 
 func TestDayCompile(t *testing.T) {
 	g := New()
+	defer g.Free()
+
 	pattern := "%{DAY}"
 	err := g.Compile(pattern)
 	if err != nil {
@@ -22,6 +26,8 @@ func TestDayCompile(t *testing.T) {
 
 func TestDayCompileAndMatch(t *testing.T) {
 	g := New()
+	defer g.Free()
+
 	g.AddPatternsFromFile("./patterns/base")
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 	pattern := "%{DAY}"

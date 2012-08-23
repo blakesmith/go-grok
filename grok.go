@@ -74,3 +74,7 @@ func (grok *Grok) Match(text string) *Match {
 
 	return match
 }
+
+func (grok *Grok) Free() {
+	C.grok_free(grok.g)
+}
