@@ -3,6 +3,7 @@ package grok
 /*
 #cgo LDFLAGS: -lgrok
 #include <grok.h>
+#include <grok_pattern.h>
 */
 import "C"
 
@@ -34,6 +35,18 @@ func New() *Grok {
 	return grok
 }
 
+func (grok *Grok) AddPatternsFromFile(path string) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	ret := C.grok_patterns_import_from_file(grok.g, cpath)
+	if ret != GROK_OK {
+		return errors.New(fmt.Sprintf("Failed to add path %s", path))
+	}
+
+	return nil
+}
+
 func (grok *Grok) Compile(pattern string) error {
 	p := C.CString(pattern)
 	defer C.free(unsafe.Pointer(p))
@@ -44,4 +57,20 @@ func (grok *Grok) Compile(pattern string) error {
 	}
 
 	return nil
+}
+
+func (grok *Grok) Match(text string) *Match {
+	t := C.CString(text)
+	defer C.free(unsafe.Pointer(t))
+	var cmatch *C.grok_match_t
+
+	ret := C.grok_execn(grok.g, t, C.int(len(text)), cmatch)
+	if ret != GROK_OK {
+		return nil
+	}
+
+	match := new(Match)
+	match.gm = cmatch
+
+	return match
 }
