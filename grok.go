@@ -4,6 +4,7 @@ package grok
 #cgo LDFLAGS: -lgrok
 #include <grok.h>
 #include <grok_pattern.h>
+#include <grok_match.h>
 */
 import "C"
 
@@ -22,8 +23,8 @@ type Grok struct {
 }
 
 type Match struct {
-	gm *C.grok_match_t
-	Grok *Grok
+	gm      C.grok_match_t
+	Grok    *Grok
 	Subject string
 }
 
@@ -53,7 +54,7 @@ func (grok *Grok) Compile(pattern string) error {
 	p := C.CString(pattern)
 	defer C.free(unsafe.Pointer(p))
 
-	ret := C.grok_compilen(grok.g, p, C.int(len(pattern)))
+	ret := C.grok_compile(grok.g, p)
 	if ret != GROK_OK {
 		return errors.New(fmt.Sprintf("Failed to compile: %s", C.GoString(grok.g.errstr)))
 	}
@@ -63,16 +64,16 @@ func (grok *Grok) Compile(pattern string) error {
 
 func (grok *Grok) Match(text string) *Match {
 	t := C.CString(text)
-	defer C.free(unsafe.Pointer(t))
+
 	var cmatch C.grok_match_t
 
-	ret := C.grok_execn(grok.g, t, C.int(len(text)), &cmatch)
+	ret := C.grok_exec(grok.g, t, &cmatch)
 	if ret != GROK_OK {
 		return nil
 	}
 
 	match := new(Match)
-	match.gm = &cmatch
+	match.gm = cmatch
 	match.Subject = C.GoString(cmatch.subject)
 	match.Grok = grok
 
@@ -81,4 +82,31 @@ func (grok *Grok) Match(text string) *Match {
 
 func (grok *Grok) Free() {
 	C.grok_free(grok.g)
+}
+
+func (match *Match) Captures() map[string][]string {
+	captures := make(map[string][]string)
+
+	var name, substring *C.char
+	var namelen, sublen C.int
+
+	C.grok_match_walk_init(&match.gm)
+
+	for C.grok_match_walk_next(&match.gm, &name, &namelen, &substring, &sublen) == GROK_OK {
+		var substrings []string
+
+		gname := C.GoStringN(name, namelen)
+		gsubstring := C.GoStringN(substring, sublen)
+
+		if val := captures[gname]; val == nil {
+			substrings = make([]string, 0)
+		} else {
+			substrings = val
+		}
+
+		captures[gname] = append(substrings, gsubstring)
+	}
+	C.grok_match_walk_end(&match.gm)
+
+	return captures
 }

@@ -39,7 +39,7 @@ func TestDayCompileAndMatch(t *testing.T) {
 	if match == nil {
 		t.Fatal("Unable to match!")
 	}
-	if match.gm == nil {
+	if &match.gm == nil {
 		t.Fatal("Match object not correctly populated")
 	}
 
@@ -48,5 +48,24 @@ func TestDayCompileAndMatch(t *testing.T) {
 	}
 	if match.Grok != g {
 		t.Fatal("Grok not correctly set")
+	}
+}
+
+func TestMatchCaptures(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("./patterns/base")
+	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
+	pattern := "%{DAY}"
+	g.Compile(pattern)
+	match := g.Match(text)
+	if match == nil {
+		t.Fatal("Unable to find match!")
+	}
+
+	captures := match.Captures()
+	if dayCap := captures["DAY"][0]; dayCap != "Tue" {
+		t.Fatal("Day should equal: %s", "Tue")
 	}
 }
