@@ -3,8 +3,6 @@ package grok
 /*
 #cgo LDFLAGS: -lgrok
 #include <grok.h>
-#include <grok_pattern.h>
-#include <grok_match.h>
 */
 import "C"
 
