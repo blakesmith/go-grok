@@ -45,6 +45,15 @@ func New() *Grok {
 	return grok
 }
 
+func (grok *Grok) AddPattern(name, pattern string) {
+	cname := C.CString(name)
+	cpattern := C.CString(pattern)
+	defer C.free(unsafe.Pointer(cname))
+	defer C.free(unsafe.Pointer(cpattern))
+
+	C.grok_pattern_add(grok.g, cname, C.strlen(cname), cpattern, C.strlen(cpattern))
+}
+
 func (grok *Grok) AddPatternsFromFile(path string) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
@@ -85,6 +94,19 @@ func (grok *Grok) Match(text string) *Match {
 	match.Grok = grok
 
 	return match
+}
+
+func (grok *Grok) Discover(text string) string {
+	ctext := C.CString(text)
+	defer C.free(unsafe.Pointer(ctext))
+
+	gdt := C.grok_discover_new(grok.g)
+	var discovery *C.char
+	var discoverylen C.int
+
+	C.grok_discover(gdt, ctext, &discovery, &discoverylen)
+
+	return C.GoStringN(discovery, discoverylen)
 }
 
 func (grok *Grok) Free() {

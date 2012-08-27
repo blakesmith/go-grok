@@ -92,3 +92,18 @@ func TestURICaptures(t *testing.T) {
 		t.Fatal("URIPATH should be /search")
 	}
 }
+
+func TestDiscovery(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPattern("IP", "(?<![0-9])(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))(?![0-9])")
+
+	text := "1.2.3.4"
+	discovery := g.Discover(text)
+	g.Compile(discovery)
+	captures := g.Match(text).Captures()
+	if ip := captures["IP"][0]; ip != text {
+		t.Fatal("IP should be 1.2.3.4")
+	}
+}
