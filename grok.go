@@ -28,7 +28,13 @@ type Grok struct {
 }
 
 type Match struct {
-	gm      C.grok_match_t
+	gm C.grok_match_t
+}
+
+type Pile struct {
+	Patterns     map[string]string
+	PatternFiles []string
+	Groks        []*Grok
 }
 
 func New() *Grok {
@@ -105,6 +111,56 @@ func (grok *Grok) Discover(text string) string {
 
 func (grok *Grok) Free() {
 	C.grok_free(grok.g)
+}
+
+func NewPile() *Pile {
+	pile := new(Pile)
+	pile.Patterns = make(map[string]string)
+	pile.PatternFiles = make([]string, 0)
+	pile.Groks = make([]*Grok, 0)
+
+	return pile
+}
+
+func (pile *Pile) Free() {
+	for _, grok := range pile.Groks {
+		grok.Free()
+	}
+}
+
+func (pile *Pile) AddPattern(name, str string) {
+	pile.Patterns[name] = str
+}
+
+func (pile *Pile) Compile(pattern string) error {
+	grok := New()
+	if grok == nil {
+		return errors.New("Unable to initialize grok!")
+	}
+
+	for name, value := range pile.Patterns {
+		grok.AddPattern(name, value)
+	}
+
+	for _, path := range pile.PatternFiles {
+		grok.AddPatternsFromFile(path)
+	}
+
+	grok.Compile(pattern)
+	pile.Groks = append(pile.Groks, grok)
+
+	return nil
+}
+
+func (pile *Pile) Match(str string) (*Grok, *Match) {
+	for _, grok := range pile.Groks {
+		match := grok.Match(str)
+		if match != nil {
+			return grok, match
+		}
+	}
+
+	return nil, nil
 }
 
 func (match *Match) Captures() map[string][]string {

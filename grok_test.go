@@ -100,3 +100,25 @@ func TestDiscovery(t *testing.T) {
 		t.Fatal("IP should be 1.2.3.4")
 	}
 }
+
+func TestPileMatching(t *testing.T) {
+	p := NewPile()
+	defer p.Free()
+
+	p.AddPattern("foo", ".*(foo).*")
+	p.AddPattern("bar", ".*(bar).*")
+
+	p.Compile("%{bar}")
+
+	grok, match := p.Match("bar")
+
+	captures := match.Captures()
+	if bar := captures["bar"][0]; bar != "bar" {
+		t.Fatal("Should match the bar pattern")
+	}
+
+	captures = grok.Match("bar").Captures()
+	if bar := captures["bar"][0]; bar != "bar" {
+		t.Fatal("Should match the bar pattern")
+	}
+}
