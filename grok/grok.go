@@ -152,6 +152,10 @@ func (pile *Pile) Compile(pattern string) error {
 	return nil
 }
 
+func (pile *Pile) AddPatternsFromFile(path string) {
+	pile.PatternFiles = append(pile.PatternFiles, path)
+}
+
 func (pile *Pile) Match(str string) (*Grok, *Match) {
 	for _, grok := range pile.Groks {
 		match := grok.Match(str)

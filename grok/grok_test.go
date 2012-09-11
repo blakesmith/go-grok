@@ -122,3 +122,20 @@ func TestPileMatching(t *testing.T) {
 		t.Fatal("Should match the bar pattern")
 	}
 }
+
+func TestPileAddPatternsFromFile(t *testing.T) {
+	p := NewPile()
+	defer p.Free()
+
+	p.AddPatternsFromFile("../patterns/base")
+	p.Compile("%{DAY}")
+
+	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
+
+	_, match := p.Match(text)
+
+	captures := match.Captures()
+	if day := captures["DAY"][0]; day != "Tue" {
+		t.Fatal("Should match the Tue")
+	}
+}
