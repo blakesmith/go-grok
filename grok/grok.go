@@ -143,7 +143,9 @@ func (pile *Pile) Compile(pattern string) error {
 	}
 
 	for _, path := range pile.PatternFiles {
-		grok.AddPatternsFromFile(path)
+		if err := grok.AddPatternsFromFile(path); err != nil {
+			return err
+		}
 	}
 
 	grok.Compile(pattern)
