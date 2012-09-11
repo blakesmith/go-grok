@@ -28,7 +28,7 @@ func TestDayCompileAndMatch(t *testing.T) {
 	g := New()
 	defer g.Free()
 
-	g.AddPatternsFromFile("./patterns/base")
+	g.AddPatternsFromFile("../patterns/base")
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 	pattern := "%{DAY}"
 	err := g.Compile(pattern)
@@ -48,7 +48,7 @@ func TestMatchCaptures(t *testing.T) {
 	g := New()
 	defer g.Free()
 
-	g.AddPatternsFromFile("./patterns/base")
+	g.AddPatternsFromFile("../patterns/base")
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 	pattern := "%{DAY}"
 	g.Compile(pattern)
@@ -67,7 +67,7 @@ func TestURICaptures(t *testing.T) {
 	g := New()
 	defer g.Free()
 
-	g.AddPatternsFromFile("./patterns/base")
+	g.AddPatternsFromFile("../patterns/base")
 	text := "https://www.google.com/search?q=moose&sugexp=chrome,mod=16&sourceid=chrome&ie=UTF-8"
 	pattern := "%{URI}"
 	g.Compile(pattern)
