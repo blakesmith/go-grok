@@ -139,3 +139,48 @@ func TestPileAddPatternsFromFile(t *testing.T) {
 		t.Fatal("Should match the Tue")
 	}
 }
+
+/* Get the index of the first match in the string */
+func TestMatchIndices(t *testing.T) {
+	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: May 7157"
+	g := New()
+	g.Compile("May")
+
+	match := g.Match(text)
+	
+	idx := match.FindIndex()
+	if idx[0] != 4 {
+		t.Fatal("Expected starting index 4, got", idx[0])
+	}
+	if idx[1] != 7 {
+		t.Fatal("Expected end  index 7, got", idx[1])
+	}
+}
+
+/* Grok doesn't handle PCRE named groups well, they should be ignored */
+func TestPCRENamedCaptures(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	text := "https://www.google.com/search?q=moose&sugexp=chrome,mod=16&sourceid=chrome&ie=UTF-8"
+	pattern := "%{URI}(?<fe>.*)"
+	g.Compile(pattern)
+	match := g.Match(text)
+	if match == nil {
+		t.Fatal("Unable to find match!")
+	}
+
+	captures := match.Captures()
+
+	if host := captures["URIHOST"][0]; host != "www.google.com" {
+		t.Fatal("URIHOST should be www.google.com")
+	}
+	if path := captures["URIPATH"][0]; path != "/search" {
+		t.Fatal("URIPATH should be /search")
+	}
+	if _, ok := captures["fe"]; ok {
+		t.Fatal("Should ignore named PCRE group")
+	}
+}
+

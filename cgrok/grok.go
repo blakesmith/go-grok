@@ -196,3 +196,10 @@ func (match *Match) Captures() map[string][]string {
 
 	return captures
 }
+
+/* Returns an array of two integers, where the first is the starting index of the match, and 
+   the second is the last index of the match. This is the same convention as the Golang regexp
+   library's `FindIndex`. */
+func (match *Match) FindIndex() []int {
+	return []int{int(match.gm.start), int(match.gm.end)}
+} 

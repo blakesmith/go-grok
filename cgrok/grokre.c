@@ -14,8 +14,8 @@
 
 /* global, static variables */
 
-#define CAPTURE_ID_LEN 4
-#define CAPTURE_FORMAT "%04x"
+#define CAPTURE_ID_LEN 5
+#define CAPTURE_FORMAT "_%04x"
 
 /* internal functions */
 static char *grok_pattern_expand(grok_t *grok); //, int offset, int length);
@@ -402,17 +402,24 @@ static void grok_study_capture_map(grok_t *grok) {
   pcre_fullinfo(grok->re, NULL, PCRE_INFO_NAMEENTRYSIZE, &nametable_entrysize);
   pcre_fullinfo(grok->re, NULL, PCRE_INFO_NAMETABLE, &nametable);
 
+  /* Grok creates PCRE named groups where the name is a hex number.
+     Then it tries to extract the number from the PCRE nametable, 
+     so as to tie the index of the PCRE group to the Grok variable name.
+
+     PCRE named groups like (?<group>.*) will be ignored.
+      */ 
   for (i = 0; i < nametable_size; i++) {
     offset = i * nametable_entrysize;
     stringnum = (nametable[offset] << 8) + nametable[offset + 1];
     sscanf(nametable + offset + 2, CAPTURE_FORMAT, &capture_id);
     grok_log(grok, LOG_COMPILE, "Studying capture %d", capture_id);
     gct = (grok_capture *)grok_capture_get_by_id(grok, capture_id);
-    assert(gct != NULL);
-    gct->pcre_capture_number = stringnum;
+    if (gct) {
+      gct->pcre_capture_number = stringnum;
 
-    /* update the database with the new data */
-    grok_capture_add(grok, gct);
+      /* update the database with the new data */
+      grok_capture_add(grok, gct);
+    }
   }
 }
 
