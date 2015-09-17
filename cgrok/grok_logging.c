@@ -27,7 +27,11 @@ inline void _grok_log(int level, int indent, const char *format, ...) {
     case LOG_DISCOVER: prefix = "[discover] "; break;
     default: prefix = "[unknown] ";
   }
+#ifdef _WIN64
+  fprintf(out, "%*s%s", indent * 2, "", prefix);
+#else
   fprintf(out, "[%d] %*s%s", getpid(), indent * 2, "", prefix);
+#endif
   vfprintf(out, format, args);
   fprintf(out, "\n");
   va_end(args);

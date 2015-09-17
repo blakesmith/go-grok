@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "stringhelper.h"
 #include "grok_logging.h"
 #include "predicates.h"
 
@@ -130,8 +131,9 @@ int grok_predicate_regexp_init(grok_t *grok, grok_capture *gct,
    * non-heap pointers. */
 
   /* Break const... */
-  gct->predicate_func_name = strdup("grok_predicate_regexp");
-  gct->predicate_func_name_len = strlen("grok_predicate_regexp");
+  size_t constlen = strlen("grok_predicate_regexp");
+  gct->predicate_func_name = string_ndup("grok_predicate_regexp", constlen);
+  gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gprt);
   grok_capture_add(grok, gct);
 
@@ -212,8 +214,9 @@ int grok_predicate_numcompare_init(grok_t *grok, grok_capture *gct,
   /* Restore the original character at the end, which probably wasn't a null byte */
   tmp[args_len] = a;
 
-  gct->predicate_func_name = strdup("grok_predicate_numcompare");
-  gct->predicate_func_name_len = strlen("grok_predicate_numcompare");
+  size_t constlen = strlen("grok_predicate_numcompare");
+  gct->predicate_func_name = string_ndup("grok_predicate_numcompare", constlen);
+  gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gpnt);
   grok_capture_add(grok, gct);
   return 0;
@@ -269,8 +272,9 @@ int grok_predicate_strcompare_init(grok_t *grok, grok_capture *gct,
   gpst->value = malloc(gpst->len);
   memcpy(gpst->value, args + pos, gpst->len);
 
-  gct->predicate_func_name = strdup("grok_predicate_strcompare");
-  gct->predicate_func_name_len = strlen("grok_predicate_strcompare");
+  size_t constlen = strlen("grok_predicate_strcompare");
+  gct->predicate_func_name = string_ndup("grok_predicate_strcompare", constlen);
+  gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gpst);
   grok_capture_add(grok, gct);
 
