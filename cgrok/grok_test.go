@@ -157,14 +157,14 @@ func TestMatchIndices(t *testing.T) {
 	}
 }
 
-/* Grok doesn't handle PCRE named groups well, they should be ignored */
+/* Support PCRE named captures, they just can't start with `_` */
 func TestPCRENamedCaptures(t *testing.T) {
 	g := New()
 	defer g.Free()
 
 	g.AddPatternsFromFile("../patterns/base")
-	text := "https://www.google.com/search?q=moose&sugexp=chrome,mod=16&sourceid=chrome&ie=UTF-8"
-	pattern := "%{URI}(?<fe>.*)"
+	text := "message - Tue November 2000 ALLCAPSHOST 12345"
+	pattern := "(?P<word>[a-z]*) - %{DAY} %{MONTH} (?P<year>[0-9]*) (?P<host>[A-Z]*) %{BASE10NUM}"
 	g.Compile(pattern)
 	match := g.Match(text)
 	if match == nil {
@@ -173,14 +173,38 @@ func TestPCRENamedCaptures(t *testing.T) {
 
 	captures := match.Captures()
 
-	if host := captures["URIHOST"][0]; host != "www.google.com" {
-		t.Fatal("URIHOST should be www.google.com")
+	if host := captures["word"][0]; host != "message" {
+		t.Fatal("word should be 'message'")
 	}
-	if path := captures["URIPATH"][0]; path != "/search" {
-		t.Fatal("URIPATH should be /search")
+	if len(captures["DAY"]) != 1 {
+		t.Fatal("Expected one group named DAY")
 	}
-	if _, ok := captures["fe"]; ok {
-		t.Fatal("Should ignore named PCRE group")
+	if path := captures["DAY"][0]; path != "Tue" {
+		t.Fatal("DAY should be 'Tue'")
+	}
+	if len(captures["MONTH"]) != 1 {
+		t.Fatal("Expected one group named MONTH")
+	}
+	if month := captures["MONTH"][0]; month != "November" {
+		t.Fatal("month should be 'November'")
+	}
+	if len(captures["year"]) != 1 {
+		t.Fatal("Expected one group named year")
+	}
+        if year := captures["year"][0]; year != "2000" {
+		t.Fatal("year should be '2000'")
+	}
+	if len(captures["host"]) != 1 {
+		t.Fatal("Expected one group named host")
+	}
+        if host := captures["host"][0]; host != "ALLCAPSHOST" {
+		t.Fatal("host should be 'ALLCAPSHOST'")
+	}
+	if len(captures["BASE10NUM"]) != 1 {
+		t.Fatal("Expected one group named BASE10NUM")
+	}
+        if num := captures["BASE10NUM"][0]; num != "12345" {
+		t.Fatal("BASE10NUM should be '12345'")
 	}
 }
 

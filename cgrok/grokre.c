@@ -404,20 +404,38 @@ static void grok_study_capture_map(grok_t *grok) {
 
   /* Grok creates PCRE named groups where the name is a hex number.
      Then it tries to extract the number from the PCRE nametable, 
-     so as to tie the index of the PCRE group to the Grok variable name.
-
-     PCRE named groups like (?<group>.*) will be ignored.
-      */ 
+     so as to tie the index of the PCRE group to the Grok variable name.*/ 
   for (i = 0; i < nametable_size; i++) {
     offset = i * nametable_entrysize;
     stringnum = (nametable[offset] << 8) + nametable[offset + 1];
-    sscanf(nametable + offset + 2, CAPTURE_FORMAT, &capture_id);
-    grok_log(grok, LOG_COMPILE, "Studying capture %d", capture_id);
-    gct = (grok_capture *)grok_capture_get_by_id(grok, capture_id);
-    if (gct) {
-      gct->pcre_capture_number = stringnum;
+    char *groupName = nametable + offset + 2;
+    capture_id = -1;
+    sscanf(groupName, CAPTURE_FORMAT, &capture_id);
 
-      /* update the database with the new data */
+    // If scanf didn't extract a number, this isn't a Grok capture group
+    if (capture_id >= 0) {
+      grok_log(grok, LOG_COMPILE, "Studying capture %d", capture_id);
+      gct = (grok_capture *)grok_capture_get_by_id(grok, capture_id);
+      if (gct) {
+        gct->pcre_capture_number = stringnum;
+
+        /* update the database with the new data */
+        grok_capture_add(grok, gct);
+      }
+    } else {
+      /* 
+         Make a new Grok capture group for each PCRE named group.
+         We only use `grok_match_walk`, so we only need to populate
+         `gct->pcre_capture_number` and `gct->name`.
+      */ 
+      gct = calloc(1, sizeof(grok_capture));
+      size_t name_len = strlen(groupName);
+      char *name = malloc(name_len);
+      gct->name_len = name_len;
+      strncpy(name, groupName, name_len);
+      gct->name = name;
+      gct->pcre_capture_number = stringnum;
+      gct->id = -1 * i;
       grok_capture_add(grok, gct);
     }
   }
