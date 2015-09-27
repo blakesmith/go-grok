@@ -58,6 +58,7 @@ void grok_free(grok_t *grok) {
   grok_free_clone(grok);
   if (grok->patterns != NULL)
     tctreedel(grok->patterns);
+  free(grok);
 }
 
 int grok_compile(grok_t *grok, const char *pattern) {

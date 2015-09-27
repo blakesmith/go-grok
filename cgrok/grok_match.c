@@ -41,6 +41,9 @@ void grok_match_walk_init(const grok_match_t *gm) {
   grok_capture_walk_init(grok);
 }
 
+/* WARNING - For the purposes of reading named groups into Go and taking copies of these
+ * strings, this is definitely safe. Re-evaluate and Valgrind if we start passing the name
+ * pointer instead of immediately calling CString() on it. */
 int grok_match_walk_next(const grok_match_t *gm,
                          char **name, int *namelen,
                          const char **substr, int *substrlen) {
@@ -52,8 +55,7 @@ int grok_match_walk_next(const grok_match_t *gm,
   }
 
   *namelen = gct->name_len;
-  *name = malloc(*namelen);
-  memcpy(*name, gct->name, *namelen);
+  *name = gct->name;
 
   start = (gm->grok->pcre_capture_vector[gct->pcre_capture_number * 2]);
   end = (gm->grok->pcre_capture_vector[gct->pcre_capture_number * 2 + 1]);

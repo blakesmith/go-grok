@@ -93,7 +93,6 @@ void tctreeput(TCTREE *tree, const void *kbuf, int ksiz, const void *vbuf, int v
   void ** valPtr = dict_insert(tree->dict, key, &inserted);
   if (!inserted) {
     free(key);
-    free(*valPtr);
   }
   *valPtr = val;
 }
@@ -123,7 +122,7 @@ bool tctreeputkeep(TCTREE *tree, const void *kbuf, int ksiz, const void *vbuf, i
 
 // Get the value for the given key, or NULL if the key is not in the tree
 const void *tctreeget(TCTREE *tree, const void *kbuf, int ksiz, int *sp) {
-  const void *key = tcpack(kbuf, ksiz);
+  void *key = tcpack(kbuf, ksiz);
   if (key == NULL) {
     fprintf(stderr, "Failed to malloc tree key (tctreeget)\n");
     exit(0);
@@ -179,7 +178,7 @@ int tclistnum(const TCLIST *list) {
 }
 
 // Null-terminate the value to be inserted, as TokyoCabinet does
-void *tclistpack(void *buf, uint32_t size) {
+void *tclistpack(const void *buf, uint32_t size) {
   void *val = malloc(size+1);
   if (val == NULL) {
     return NULL;
