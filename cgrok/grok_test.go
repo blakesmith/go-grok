@@ -157,7 +157,8 @@ func TestMatchIndices(t *testing.T) {
 	}
 }
 
-/* Support PCRE named captures, they just can't start with `_` */
+/* Support PCRE named captures: they can't start with `_`, and they're
+    prefixed with `:` */
 func TestPCRENamedCaptures(t *testing.T) {
 	g := New()
 	defer g.Free()
@@ -173,7 +174,7 @@ func TestPCRENamedCaptures(t *testing.T) {
 
 	captures := match.Captures()
 
-	if host := captures["word"][0]; host != "message" {
+	if host := captures[":word"][0]; host != "message" {
 		t.Fatal("word should be 'message'")
 	}
 	if len(captures["DAY"]) != 1 {
@@ -188,16 +189,16 @@ func TestPCRENamedCaptures(t *testing.T) {
 	if month := captures["MONTH"][0]; month != "November" {
 		t.Fatal("month should be 'November'")
 	}
-	if len(captures["year"]) != 1 {
+	if len(captures[":year"]) != 1 {
 		t.Fatal("Expected one group named year")
 	}
-        if year := captures["year"][0]; year != "2000" {
+        if year := captures[":year"][0]; year != "2000" {
 		t.Fatal("year should be '2000'")
 	}
-	if len(captures["host"]) != 1 {
+	if len(captures[":host"]) != 1 {
 		t.Fatal("Expected one group named host")
 	}
-        if host := captures["host"][0]; host != "ALLCAPSHOST" {
+        if host := captures[":host"][0]; host != "ALLCAPSHOST" {
 		t.Fatal("host should be 'ALLCAPSHOST'")
 	}
 	if len(captures["BASE10NUM"]) != 1 {

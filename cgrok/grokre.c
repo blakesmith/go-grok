@@ -428,12 +428,15 @@ static void grok_study_capture_map(grok_t *grok) {
          Make a new Grok capture group for each PCRE named group.
          We only use `grok_match_walk`, so we only need to populate
          `gct->pcre_capture_number` and `gct->name`.
+         PCRE named capture groups will be returned with a leading colon (':')
+         so they're always extracted.
       */ 
       gct = calloc(1, sizeof(grok_capture));
       size_t name_len = strlen(groupName);
-      char *name = malloc(name_len);
-      gct->name_len = name_len;
-      strncpy(name, groupName, name_len);
+      char *name = malloc(name_len + 1);
+      gct->name_len = name_len + 1;
+      *name = ':';
+      strncpy(name + 1, groupName, name_len);
       gct->name = name;
       gct->pcre_capture_number = stringnum;
       gct->id = -1 * i;
