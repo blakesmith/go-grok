@@ -193,19 +193,19 @@ func TestPCRENamedCaptures(t *testing.T) {
 	if len(captures[":year"]) != 1 {
 		t.Fatal("Expected one group named year")
 	}
-        if year := captures[":year"][0]; year != "2000" {
+	if year := captures[":year"][0]; year != "2000" {
 		t.Fatal("year should be '2000'")
 	}
 	if len(captures[":host"]) != 1 {
 		t.Fatal("Expected one group named host")
 	}
-        if host := captures[":host"][0]; host != "ALLCAPSHOST" {
+	if host := captures[":host"][0]; host != "ALLCAPSHOST" {
 		t.Fatal("host should be 'ALLCAPSHOST'")
 	}
 	if len(captures["BASE10NUM"]) != 1 {
 		t.Fatal("Expected one group named BASE10NUM")
 	}
-        if num := captures["BASE10NUM"][0]; num != "12345" {
+	if num := captures["BASE10NUM"][0]; num != "12345" {
 		t.Fatal("BASE10NUM should be '12345'")
 	}
 }
@@ -240,8 +240,8 @@ func TestConcurrentCaptures(t *testing.T) {
 						t.Fatal("Got unexpected agent " + captures["QS:agent"][0])
 					}
 					if captures["INT:bytes"][0] != "370" {
-                                                t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
-                                        }
+						t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
+					}
 					match.Free()
 				} else {
 					match := g.Match(text2)
@@ -267,4 +267,44 @@ func TestConcurrentCaptures(t *testing.T) {
 		}()
 	}
 	s.Wait()
+}
+
+/* Test extracting into an existing map. Only renamed sub-expressions
+   and all PCRE named groups, should be included. */
+func TestCaptureIntoMap(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+
+	text := "message - Tue November 2000 ALLCAPSHOST 12345"
+	pattern := "(?P<word>[a-z]*) - %{DAY:day} %{MONTH} (?P<year>[0-9]*) (?P<host>[A-Z]*) %{BASE10NUM:number}"
+	g.Compile(pattern)
+	match := g.Match(text)
+	if match == nil {
+		t.Fatal("Unable to find match!")
+	}
+	captures := make(map[string]string)
+	match.CaptureIntoMap(captures)
+	if len(captures) != 5 {
+		t.Fatal("Expected 5 groups to be extracted")
+	}
+	if host := captures["word"]; host != "message" {
+		t.Fatal("word should be 'message'")
+	}
+	if day := captures["day"]; day != "Tue" {
+		t.Fatal("`day` should be 'Tue'")
+	}
+	if _, ok := captures["MONTH"]; ok {
+		t.Fatal("`MONTH` should be ignored")
+	}
+	if year := captures["year"]; year != "2000" {
+		t.Fatal("`year` should be '2000'")
+	}
+	if host := captures["host"]; host != "ALLCAPSHOST" {
+		t.Fatal("`host` should be 'ALLCAPSHOST'")
+	}
+	if num := captures["number"]; num != "12345" {
+		t.Fatal("`number` should be '12345'")
+	}
 }

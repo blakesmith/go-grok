@@ -11,6 +11,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unsafe"
 )
 
@@ -206,6 +207,31 @@ func (match *Match) Free() {
 		C.free(ptr)
 	}
 	C.grok_match_free(&match.gm)
+}
+
+/* Add captures to the map, clobbering existing keys. Only extracts
+   sub-expressions which have been explicitly renamed - `%{DAY}` will not be extracted,
+   but `%{DAY:day}` will be extracted with the key `day`. Sub-expressions with duplicate names
+   will clobber each other as well - the last match will remain. */
+func (match *Match) CaptureIntoMap(captures map[string]string) {
+	var name, substring *C.char
+	var namelen, sublen C.int
+
+	C.grok_match_walk_init(&match.gm)
+
+	for C.grok_match_walk_next(&match.gm, &name, &namelen, &substring, &sublen) == GROK_OK {
+		gname := C.GoStringN(name, namelen)
+		if idx := strings.Index(gname, ":"); idx > -1 {
+			gname = gname[(idx+1):]
+		} else {
+			// The name doesn't include a colon, skip this group
+			continue
+		}
+		gsubstring := C.GoStringN(substring, sublen)
+
+		captures[gname] = gsubstring
+	}
+	C.grok_match_walk_end(&match.gm)
 }
 
 /* Returns an array of two integers, where the first is the starting index of the match, and 
