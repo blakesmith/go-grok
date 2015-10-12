@@ -42,7 +42,6 @@ struct grok {
   TCTREE *patterns;
 
   pcre *re;
-  int *pcre_capture_vector;
   int pcre_num_captures;
   
   /* Data storage for named-capture (grok capture) information */

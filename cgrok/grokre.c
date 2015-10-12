@@ -12,11 +12,6 @@
 #include "predicates.h"
 #include "stringhelper.h"
 
-/* global, static variables */
-
-#define CAPTURE_ID_LEN 5
-#define CAPTURE_FORMAT "_%04x"
-
 /* internal functions */
 static char *grok_pattern_expand(grok_t *grok); //, int offset, int length);
 static void grok_study_capture_map(grok_t *grok);
@@ -31,10 +26,6 @@ void grok_free_clone(const grok_t *grok) {
 
   if (grok->full_pattern != NULL) {
     free(grok->full_pattern);
-  }
-
-  if (grok->pcre_capture_vector != NULL) {
-    free(grok->pcre_capture_vector);
   }
 
   if (grok->captures_by_name != NULL) {
@@ -96,7 +87,6 @@ int grok_compilen(grok_t *grok, const char *pattern, int length) {
 
   pcre_fullinfo(grok->re, NULL, PCRE_INFO_CAPTURECOUNT, &grok->pcre_num_captures);
   grok->pcre_num_captures++; /* include the 0th group */
-  grok->pcre_capture_vector = calloc(3 * grok->pcre_num_captures, sizeof(int));
 
   /* Walk grok->captures_by_id.
    * For each, ask grok->re what stringnum it is */
@@ -125,11 +115,13 @@ int grok_execn(const grok_t *grok, const char *text, int textlen, grok_match_t *
     return GROK_ERROR_UNINITIALIZED;
   }
 
+  int* matches = calloc(grok->pcre_num_captures * 3, sizeof(int));
   ret = pcre_exec(grok->re, &pce, text, textlen, 0, 0,
-                  grok->pcre_capture_vector, grok->pcre_num_captures * 3);
+                  matches, grok->pcre_num_captures * 3);
   grok_log(grok, LOG_EXEC, "%.*s =~ /%s/ => %d",
            textlen, text, grok->pattern, ret);
   if (ret < 0) {
+    free(matches);
     switch (ret) {
       case PCRE_ERROR_NOMATCH:
         return GROK_ERROR_NOMATCH;
@@ -152,8 +144,9 @@ int grok_execn(const grok_t *grok, const char *text, int textlen, grok_match_t *
   if (gm != NULL) {
     gm->grok = grok;
     gm->subject = text;
-    gm->start = grok->pcre_capture_vector[0];
-    gm->end = grok->pcre_capture_vector[1];
+    gm->pcre_capture_vector = matches;
+    gm->start = matches[0];
+    gm->end = matches[1];
   }
 
   return GROK_OK;

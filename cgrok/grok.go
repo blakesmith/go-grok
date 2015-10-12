@@ -82,6 +82,8 @@ func (grok *Grok) Compile(pattern string) error {
 	return nil
 }
 
+/* Note that Matches must be freed after use, to free the C string
+   used for matching and the PCRE vector */
 func (grok *Grok) Match(text string) *Match {
 	t := C.CString(text)
 
@@ -89,12 +91,13 @@ func (grok *Grok) Match(text string) *Match {
 
 	ret := C.grok_exec(grok.g, t, &cmatch)
 	if ret != GROK_OK {
+		C.free(unsafe.Pointer(t))
 		return nil
 	}
 
 	match := new(Match)
 	match.gm = cmatch
-
+	
 	return match
 }
 
@@ -181,7 +184,6 @@ func (match *Match) Captures() map[string][]string {
 
 	for C.grok_match_walk_next(&match.gm, &name, &namelen, &substring, &sublen) == GROK_OK {
 		var substrings []string
-
 		gname := C.GoStringN(name, namelen)
 		gsubstring := C.GoStringN(substring, sublen)
 
@@ -198,9 +200,17 @@ func (match *Match) Captures() map[string][]string {
 	return captures
 }
 
+func (match *Match) Free() {
+	ptr := unsafe.Pointer(match.gm.subject)
+	if uintptr(ptr) != 0 {
+		C.free(ptr)
+	}
+	C.grok_match_free(&match.gm)
+}
+
 /* Returns an array of two integers, where the first is the starting index of the match, and 
    the second is the last index of the match. This is the same convention as the Golang regexp
    library's `FindIndex`. */
 func (match *Match) FindIndex() []int {
 	return []int{int(match.gm.start), int(match.gm.end)}
-} 
+}

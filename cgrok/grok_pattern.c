@@ -13,11 +13,13 @@ TCLIST *grok_pattern_name_list(const grok_t *grok) {
   TCTREE *patterns = grok->patterns;
   names = tclistnew();
 
-  tctreeiterinit(patterns);
+  TCTREE_ITER *list_iter = tctreeiterinit(patterns);
 
-  while ((data = tctreeiternext(patterns, &datalen)) != NULL) {
+  while ((data = tctreeiternext(list_iter, &datalen)) != NULL) {
     tclistpush(names, data, datalen);
   }
+
+  tctreeiterfree(list_iter);
 
   return names;
 }

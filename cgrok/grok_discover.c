@@ -1,4 +1,4 @@
-#include <grok.h>
+#include "grok.h"
 #include "stringhelper.h"
 
 static int dgrok_init = 0;
@@ -112,12 +112,13 @@ void grok_discover(const grok_discover_t *gdt, /*grok_t *dest_grok, */
     int match = 0;
     grok_match_t gm;
     grok_match_t best_match;
+    TCTREE_ITER *tree_iter; 
 
     grok_log(gdt, LOG_DISCOVER, "%d: Round starting", rounds);
     grok_log(gdt, LOG_DISCOVER, "%d: String: %.*s", rounds, pattern_len, pattern);
     grok_log(gdt, LOG_DISCOVER, "%d: Offset: % *s^", rounds, offset - 1, " ");
 
-    tctreeiterinit(gdt->complexity_tree);
+    tree_iter = tctreeiterinit(gdt->complexity_tree);
     rounds++;
 
     replacements = 0;
@@ -132,7 +133,7 @@ void grok_discover(const grok_discover_t *gdt, /*grok_t *dest_grok, */
 
     char *cursor = pattern + offset;
 
-    while ((key = tctreeiternext(gdt->complexity_tree, &key_len)) != NULL) {
+    while ((key = tctreeiternext(tree_iter, &key_len)) != NULL) {
       const int *complexity = (const int *)key;
       int val_len;
       const grok_t *g = tctreeget(gdt->complexity_tree, key, sizeof(int), &val_len);
@@ -182,6 +183,8 @@ void grok_discover(const grok_discover_t *gdt, /*grok_t *dest_grok, */
         }
       } /* match == GROK_OK */
     } /* tctreeiternext(complexity_tree ...) */
+
+    tctreeiterfree(tree_iter);
 
     if (max_matchlen == 0) { /* No valid matches were found */
       if (first_match_endpos > 0) {

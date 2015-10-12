@@ -35,31 +35,31 @@ TCTREE *tctreenew2(dict_compare_func cp, void *cmpop) {
     exit(0);
   }
   tree->dict = hb_dict_new(cp, tcfree);
-  tree->iter = NULL;
   return tree; 
 }
 
-// Create an iterator to walk keys in ascending order
-// TokyoCabinet only allows one iterator per tree,
-// so we do the same.
-void tctreeiterinit(TCTREE *tree) {
-  if (tree->iter != NULL) {
-    dict_itor_free(tree->iter);
-  }
-  tree->iter = dict_itor_new(tree->dict);
-  dict_itor_first(tree->iter);
+// Create an iterator to walk keys in ascending order.
+// Each tree can have multiple iterators at once.
+TCTREE_ITER *tctreeiterinit(const TCTREE *tree) {
+  TCTREE_ITER *iter = dict_itor_new(tree->dict);
+  dict_itor_first(iter);
+  return iter;
 }
 
 // Get the next key from the iterator
-const void *tctreeiternext(TCTREE *tree, int *sp) {
-  void *key = dict_itor_key(tree->iter);
-  dict_itor_next(tree->iter);
+const void *tctreeiternext(const TCTREE_ITER *iter, int *sp) {
+  void *key = dict_itor_key(iter);
+  dict_itor_next(iter);
   *sp = 0;
   if (key) {
     *sp = *(uint32_t*)key;
     return key+4;
   }
   return NULL;
+}
+
+void tctreeiterfree(TCTREE_ITER *iter) {
+  dict_itor_free(iter);
 }
 
 // Pack a key or value: uint32_t + body + NULL
@@ -148,9 +148,6 @@ void tctreedel(TCTREE *tree) {
     return;
   }
   dict_free(tree->dict);
-  if (tree->iter != NULL) {
-    dict_itor_free(tree->iter);
-  }
   free(tree);
 }
 

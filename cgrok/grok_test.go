@@ -1,6 +1,7 @@
 package grok
 
 import (
+	"sync"
 	"testing"
 )
 
@@ -209,3 +210,61 @@ func TestPCRENamedCaptures(t *testing.T) {
 	}
 }
 
+/* Test multiple goroutines using the same Grok concurrently - we use a separate iterator and PCRE vector per match now */
+func TestConcurrentCaptures(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	g.AddPattern("S3_REQUEST_LINE", "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})")
+	text1 := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
+	text2 := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [24/Jul/2015:01:34:43 +0000] 135.23.112.88 - A2AD9CC02C12642F REST.HEAD.OBJECT 1.2.0/rocana-installer-1.2.0.bin.asc \"HEAD /1.2.0/rocana-installer-1.2.0.bin.asc HTTP/1.1\" 200 - - 836 7 - \"-\" \"curl/7.37.1\" -"
+	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
+	g.Compile(pattern)
+	var s sync.WaitGroup
+	for i := 0 ; i< 10000; i++ {
+		s.Add(1)	
+		go func(){
+			defer s.Done()
+			for j := 0; j < 5; j++ {
+				if i % 2 == 0 {
+					match := g.Match(text1)
+					if match == nil {
+						t.Fatal("Unable to match string 1")
+					}
+					captures := match.Captures()
+					if captures["HTTPDATE:timestamp"][0] != "11/Apr/2015:03:27:40 +0000" {
+						t.Fatal("Got unexpected timestamp "+captures["HTTPDATE:timestamp"][0])
+					}	
+ 					if captures["QS:agent"][0] != "\"S3Console/0.4\"" {
+						t.Fatal("Got unexpected agent " + captures["QS:agent"][0])
+					}
+					if captures["INT:bytes"][0] != "370" {
+                                                t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
+                                        }
+					match.Free()
+				} else {
+					match := g.Match(text2)
+					if match == nil {
+						t.Fatal("Unable to match string 2")
+					}
+					captures := match.Captures()
+					if captures["HTTPDATE:timestamp"][0] != "24/Jul/2015:01:34:43 +0000" {
+						t.Fatal("Got unexpected timestamp "+captures["HTTPDATE:timestamp"][0])
+					}	
+ 					if captures["QS:agent"][0] != "\"curl/7.37.1\"" {
+						t.Fatal("Got unexpected agent "+captures["QS:agent"][0])
+					}
+					if captures["INT:bytes"][0] != "" {
+						t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
+					}
+					if captures["INT:object_size"][0] != "836" {
+						t.Fatal("Got unexpected size "+captures["INT:object_size"][0])
+					}
+					match.Free()
+				}
+			}
+		}()
+	}
+	s.Wait()
+}

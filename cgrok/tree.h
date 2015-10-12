@@ -7,8 +7,9 @@ typedef struct TCTREE TCTREE;
 // A shim to use dictlib trees instead of TC
 struct TCTREE {
   dict *dict;
-  dict_itor *iter;
 };
+
+typedef dict_itor TCTREE_ITER;
 
 // A replacement for the 32-bit int key comparator
 int tccmpint32(const void* k1, const void* k2);
@@ -18,8 +19,9 @@ int dict_var_str_cmp(const void* k1, const void* k2);
 
 TCTREE *tctreenew(void);
 TCTREE *tctreenew2(dict_compare_func cp, void *cmpop);
-void tctreeiterinit(TCTREE *tree);
-const void *tctreeiternext(TCTREE *tree, int *sp);
+TCTREE_ITER *tctreeiterinit(const TCTREE *tree);
+const void *tctreeiternext(const TCTREE_ITER *iter, int *sp);
+void tctreeiterfree(TCTREE_ITER *iter);
 void tctreeput(TCTREE *tree, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
 bool tctreeputkeep(TCTREE *tree, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
 const void *tctreeget(TCTREE *tree, const void *kbuf, int ksiz, int *sp);
