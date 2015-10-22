@@ -268,14 +268,12 @@ func TestConcurrentCaptures(t *testing.T) {
 	}
 	s.Wait()
 }
-/* Test extracting into an existing map. Only renamed sub-expressions
-   and all PCRE named groups, should be included. */
-func TestCaptureIntoMap(t *testing.T) {
+
+func TestRenamedOnly(t *testing.T) {
 	g := New()
 	defer g.Free()
 
 	g.AddPatternsFromFile("../patterns/base")
-
 	text := "message - Tue November 2000 ALLCAPSHOST 12345"
 	pattern := "(?P<word>[a-z]*) - %{DAY:day} %{MONTH} (?P<year>[0-9]*) (?P<host>[A-Z]*) %{BASE10NUM:number}"
 	g.Compile(pattern, true)

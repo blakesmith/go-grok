@@ -41,6 +41,10 @@ void grok_match_walk_init(grok_match_t *gm);
 int grok_match_walk_next(grok_match_t *gm,
                          char **name, int *namelen,
                          const char **substr, int *substrlen);
+int grok_match_walk_next_offsets(grok_match_t *gm,
+                         char **name, int *namelen,
+                         int *substrIndex, int *substrlen);
+
 void grok_match_walk_end(grok_match_t *gm);
 
 void grok_match_free(grok_match_t *gm);

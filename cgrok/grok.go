@@ -28,10 +28,13 @@ const (
 
 type Grok struct {
 	g *C.grok_t
+	stringCache map[uintptr]string
 }
 
 type Match struct {
 	gm C.grok_match_t
+	grok *Grok
+	subject string
 }
 
 type Pile struct {
@@ -46,8 +49,21 @@ func New() *Grok {
 	if grok.g == nil {
 		return nil
 	}
-
+	grok.stringCache = make(map[uintptr]string)
 	return grok
+}
+
+/* Only look up group names, which live as long as the grok and are frequently reused. 
+   With other strings there's a risk of getting the wrong result if memory has been freed and reused. */
+func (grok *Grok) gostringn(str *C.char, len C.int) string {
+	ptr := uintptr(unsafe.Pointer(str))
+	goStr, ok := grok.stringCache[ptr]
+	if ok {
+		return goStr
+	}
+	goStr = C.GoStringN(str, len)
+	grok.stringCache[ptr] = goStr
+	return goStr
 }
 
 func (grok *Grok) AddPattern(name, pattern string) {
@@ -98,7 +114,8 @@ func (grok *Grok) Match(text string) *Match {
 
 	match := new(Match)
 	match.gm = cmatch
-	
+	match.grok = grok
+	match.subject = text	
 	return match
 }
 
@@ -185,7 +202,7 @@ func (match *Match) Captures() map[string][]string {
 
 	for C.grok_match_walk_next(&match.gm, &name, &namelen, &substring, &sublen) == GROK_OK {
 		var substrings []string
-		gname := C.GoStringN(name, namelen)
+		gname := match.grok.gostringn(name, namelen)
 		gsubstring := C.GoStringN(substring, sublen)
 
 		if val := captures[gname]; val == nil {
@@ -201,37 +218,40 @@ func (match *Match) Captures() map[string][]string {
 	return captures
 }
 
+/* Add captures to the map, clobbering existing keys. Only extracts
+   sub-expressions which have been explicitly renamed - `%{DAY}` will not be extracted,
+   but `%{DAY:day}` will be extracted with the key `day`. Sub-expressions with duplicate names
+   will clobber each other as well - the last match will remain. */
+func (match *Match) CaptureIntoMap(captures map[string]string) {
+	var name *C.char
+	var namelen, suboffset, sublen C.int
+
+	C.grok_match_walk_init(&match.gm)
+
+	for C.grok_match_walk_next_offsets(&match.gm, &name, &namelen, &suboffset, &sublen) == GROK_OK {
+		gname := match.grok.gostringn(name, namelen)
+		colonIdx := strings.Index(gname, ":")
+		if colonIdx > -1 {
+			/* Do some pointer arithmetic to find the index of the match within the string. The match should always
+                           be between the beginning of the subject and the end, or an empty string */
+			var gsubstring string
+			if int(sublen) > 0 {
+				if int(suboffset) > -1 && int(suboffset + sublen) <= len(match.subject) {
+					gsubstring = match.subject[int(suboffset):int(suboffset + sublen)]
+				}
+			}
+			captures[gname[colonIdx+1:]] = gsubstring
+		}
+	}
+	C.grok_match_walk_end(&match.gm)
+}
+
 func (match *Match) Free() {
 	ptr := unsafe.Pointer(match.gm.subject)
 	if uintptr(ptr) != 0 {
 		C.free(ptr)
 	}
 	C.grok_match_free(&match.gm)
-}
-
-/* Add captures to the map, clobbering existing keys. Only extracts
-   sub-expressions which have been explicitly renamed - `%{DAY}` will not be extracted,
-   but `%{DAY:day}` will be extracted with the key `day`. Sub-expressions with duplicate names
-   will clobber each other as well - the last match will remain. */
-func (match *Match) CaptureIntoMap(captures map[string]string) {
-	var name, substring *C.char
-	var namelen, sublen C.int
-
-	C.grok_match_walk_init(&match.gm)
-
-	for C.grok_match_walk_next(&match.gm, &name, &namelen, &substring, &sublen) == GROK_OK {
-		gname := C.GoStringN(name, namelen)
-		if idx := strings.Index(gname, ":"); idx > -1 {
-			gname = gname[(idx+1):]
-		} else {
-			// The name doesn't include a colon, skip this group
-			continue
-		}
-		gsubstring := C.GoStringN(substring, sublen)
-
-		captures[gname] = gsubstring
-	}
-	C.grok_match_walk_end(&match.gm)
 }
 
 /* Returns an array of two integers, where the first is the starting index of the match, and 

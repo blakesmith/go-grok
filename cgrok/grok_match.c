@@ -67,6 +67,26 @@ int grok_match_walk_next(grok_match_t *gm,
   return 0;
 }
 
+int grok_match_walk_next_offsets(grok_match_t *gm,
+                         char **name, int *namelen,
+                         int *substrIndex, int *substrlen) {
+  const grok_capture *gct;
+  int start, end;
+  gct = grok_capture_walk_next(gm->iter, gm->grok);
+  if (gct == NULL) {
+    return 1;
+  }
+
+  *namelen = gct->name_len;
+  *name = gct->name;
+
+  start = (gm->pcre_capture_vector[gct->pcre_capture_number * 2]);
+  end = (gm->pcre_capture_vector[gct->pcre_capture_number * 2 + 1]);
+  *substrIndex = start;
+  *substrlen = (end - start);
+  return 0;
+}
+
 void grok_match_walk_end(grok_match_t *gm) {
   if (gm->iter != NULL) {
     tctreeiterfree(gm->iter);
