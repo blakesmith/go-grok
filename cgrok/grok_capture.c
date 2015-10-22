@@ -68,10 +68,14 @@ void grok_capture_init(grok_t *grok, grok_capture *gct) {
   gct->extra.extra_val = NULL;
 }
 
-void grok_capture_add(grok_t *grok, const grok_capture *gct) {
+void grok_capture_add(grok_t *grok, const grok_capture *gct, int only_renamed) {
   grok_log(grok, LOG_CAPTURE, 
            "Adding pattern '%s' as capture %d (pcrenum %d)",
            gct->name, gct->id, gct->pcre_capture_number);
+
+  if (only_renamed && strstr(gct->name, ":") == NULL) {
+    return;
+  }
 
   /* Primary key is id */
   tctreeput(grok->captures_by_id, &(gct->id), sizeof(gct->id),

@@ -8,7 +8,7 @@
 void grok_capture_init(grok_t *grok, grok_capture *gct);
 void grok_capture_free(grok_capture *gct);
 
-void grok_capture_add(grok_t *grok, const grok_capture *gct);
+void grok_capture_add(grok_t *grok, const grok_capture *gct, int only_renamed);
 const grok_capture *grok_capture_get_by_id(const grok_t *grok, int id);
 const grok_capture *grok_capture_get_by_name(const grok_t *grok, const char *name);
 const grok_capture *grok_capture_get_by_subname(const grok_t *grok,

@@ -81,7 +81,7 @@ static void grok_predicate_regexp_global_init(void) {
 }
 
 int grok_predicate_regexp_init(grok_t *grok, grok_capture *gct,
-                               const char *args, int args_len) {
+                               const char *args, int args_len, int renamed_only) {
   #define REGEXP_OVEC_SIZE 6
   int capture_vector[REGEXP_OVEC_SIZE * 3];
   int ret; 
@@ -110,7 +110,7 @@ int grok_predicate_regexp_init(grok_t *grok, grok_capture *gct,
 
   grok_log(grok, LOG_PREDICATE, "Regexp predicate is '%s'", gprt->pattern);
   grok_clone(&gprt->gre, grok);
-  ret = grok_compile(&gprt->gre, gprt->pattern);
+  ret = grok_compile(&gprt->gre, gprt->pattern, renamed_only);
 
   gprt->negative_match = (args[capture_vector[2]] == '!');
 
@@ -135,7 +135,7 @@ int grok_predicate_regexp_init(grok_t *grok, grok_capture *gct,
   gct->predicate_func_name = string_ndup("grok_predicate_regexp", constlen);
   gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gprt);
-  grok_capture_add(grok, gct);
+  grok_capture_add(grok, gct, renamed_only);
 
   return 0;
 }
@@ -179,7 +179,7 @@ int grok_predicate_regexp(grok_t *grok, const grok_capture *gct,
 }
 
 int grok_predicate_numcompare_init(grok_t *grok, grok_capture *gct,
-                                   const char *args, int args_len) {
+                                   const char *args, int args_len, int renamed_only) {
   grok_predicate_numcompare_t *gpnt;
 
   /* I know I said that args is a const char, but we need to modify the string
@@ -218,7 +218,7 @@ int grok_predicate_numcompare_init(grok_t *grok, grok_capture *gct,
   gct->predicate_func_name = string_ndup("grok_predicate_numcompare", constlen);
   gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gpnt);
-  grok_capture_add(grok, gct);
+  grok_capture_add(grok, gct, renamed_only);
   return 0;
 }
 
@@ -247,7 +247,7 @@ int grok_predicate_numcompare(grok_t *grok, const grok_capture *gct,
 }
 
 int grok_predicate_strcompare_init(grok_t *grok, grok_capture *gct,
-                                   const char *args, int args_len) {
+                                   const char *args, int args_len, int renamed_only) {
   grok_predicate_strcompare_t *gpst;
   int pos;
 
@@ -276,7 +276,7 @@ int grok_predicate_strcompare_init(grok_t *grok, grok_capture *gct,
   gct->predicate_func_name = string_ndup("grok_predicate_strcompare", constlen);
   gct->predicate_func_name_len = constlen;
   grok_capture_set_extra(grok, gct, gpst);
-  grok_capture_add(grok, gct);
+  grok_capture_add(grok, gct, renamed_only);
 
   return 0;
 }

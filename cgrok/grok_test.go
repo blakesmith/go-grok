@@ -19,7 +19,7 @@ func TestDayCompile(t *testing.T) {
 	defer g.Free()
 
 	pattern := "%{DAY}"
-	err := g.Compile(pattern)
+	err := g.Compile(pattern, false)
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -32,7 +32,7 @@ func TestDayCompileAndMatch(t *testing.T) {
 	g.AddPatternsFromFile("../patterns/base")
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 	pattern := "%{DAY}"
-	err := g.Compile(pattern)
+	err := g.Compile(pattern, false)
 	if err != nil {
 		t.Fatal("Error:", err)
 	}
@@ -52,7 +52,7 @@ func TestMatchCaptures(t *testing.T) {
 	g.AddPatternsFromFile("../patterns/base")
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 	pattern := "%{DAY}"
-	g.Compile(pattern)
+	g.Compile(pattern, false)
 	match := g.Match(text)
 	if match == nil {
 		t.Fatal("Unable to find match!")
@@ -71,7 +71,7 @@ func TestURICaptures(t *testing.T) {
 	g.AddPatternsFromFile("../patterns/base")
 	text := "https://www.google.com/search?q=moose&sugexp=chrome,mod=16&sourceid=chrome&ie=UTF-8"
 	pattern := "%{URI}"
-	g.Compile(pattern)
+	g.Compile(pattern, false)
 	match := g.Match(text)
 	if match == nil {
 		t.Fatal("Unable to find match!")
@@ -95,7 +95,7 @@ func TestDiscovery(t *testing.T) {
 
 	text := "1.2.3.4"
 	discovery := g.Discover(text)
-	g.Compile(discovery)
+	g.Compile(discovery, false)
 	captures := g.Match(text).Captures()
 	if ip := captures["IP"][0]; ip != text {
 		t.Fatal("IP should be 1.2.3.4")
@@ -109,7 +109,7 @@ func TestPileMatching(t *testing.T) {
 	p.AddPattern("foo", ".*(foo).*")
 	p.AddPattern("bar", ".*(bar).*")
 
-	p.Compile("%{bar}")
+	p.Compile("%{bar}", false)
 
 	grok, match := p.Match("bar")
 
@@ -129,7 +129,7 @@ func TestPileAddPatternsFromFile(t *testing.T) {
 	defer p.Free()
 
 	p.AddPatternsFromFile("../patterns/base")
-	p.Compile("%{DAY}")
+	p.Compile("%{DAY}", false)
 
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157"
 
@@ -145,7 +145,7 @@ func TestPileAddPatternsFromFile(t *testing.T) {
 func TestMatchIndices(t *testing.T) {
 	text := "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: May 7157"
 	g := New()
-	g.Compile("May")
+	g.Compile("May", false)
 
 	match := g.Match(text)
 	
@@ -167,7 +167,7 @@ func TestPCRENamedCaptures(t *testing.T) {
 	g.AddPatternsFromFile("../patterns/base")
 	text := "message - Tue November 2000 ALLCAPSHOST 12345"
 	pattern := "(?P<word>[a-z]*) - %{DAY} %{MONTH} (?P<year>[0-9]*) (?P<host>[A-Z]*) %{BASE10NUM}"
-	g.Compile(pattern)
+	g.Compile(pattern, false)
 	match := g.Match(text)
 	if match == nil {
 		t.Fatal("Unable to find match!")
@@ -220,7 +220,7 @@ func TestConcurrentCaptures(t *testing.T) {
 	text1 := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
 	text2 := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [24/Jul/2015:01:34:43 +0000] 135.23.112.88 - A2AD9CC02C12642F REST.HEAD.OBJECT 1.2.0/rocana-installer-1.2.0.bin.asc \"HEAD /1.2.0/rocana-installer-1.2.0.bin.asc HTTP/1.1\" 200 - - 836 7 - \"-\" \"curl/7.37.1\" -"
 	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
-	g.Compile(pattern)
+	g.Compile(pattern, false)
 	var s sync.WaitGroup
 	for i := 0 ; i< 10000; i++ {
 		s.Add(1)	
@@ -268,7 +268,6 @@ func TestConcurrentCaptures(t *testing.T) {
 	}
 	s.Wait()
 }
-
 /* Test extracting into an existing map. Only renamed sub-expressions
    and all PCRE named groups, should be included. */
 func TestCaptureIntoMap(t *testing.T) {
@@ -279,7 +278,7 @@ func TestCaptureIntoMap(t *testing.T) {
 
 	text := "message - Tue November 2000 ALLCAPSHOST 12345"
 	pattern := "(?P<word>[a-z]*) - %{DAY:day} %{MONTH} (?P<year>[0-9]*) (?P<host>[A-Z]*) %{BASE10NUM:number}"
-	g.Compile(pattern)
+	g.Compile(pattern, true)
 	match := g.Match(text)
 	if match == nil {
 		t.Fatal("Unable to find match!")
@@ -306,5 +305,54 @@ func TestCaptureIntoMap(t *testing.T) {
 	}
 	if num := captures["number"]; num != "12345" {
 		t.Fatal("`number` should be '12345'")
+	}
+}
+
+func BenchmarkOldGrok(b *testing.B) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	g.AddPattern("S3_REQUEST_LINE", "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest}) (?P<pcre_named>.*)")
+	text := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
+	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
+	g.Compile(pattern, false)
+	for i := 0; i < b.N; i++ {
+		m := g.Match(text)
+		m.Captures()
+		m.Free()
+	}
+}
+
+func BenchmarkNewGrok(b *testing.B) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	g.AddPattern("S3_REQUEST_LINE", "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest}) (?P<pcre_named>.*)")
+	text := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
+	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
+	g.Compile(pattern, true)
+	for i := 0; i < b.N; i++ {
+		m := g.Match(text)
+		m.Captures()
+		m.Free()
+	}
+}
+
+func BenchmarkNewGrokIntoMap(b *testing.B) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	g.AddPattern("S3_REQUEST_LINE", "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest}) (?P<pcre_named>.*)")
+	text := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
+	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
+	g.Compile(pattern, true)
+	attr := make(map[string]string)
+	for i := 0; i < b.N; i++ {
+		m := g.Match(text)
+		m.CaptureIntoMap(attr)
+		m.Free()
 	}
 }

@@ -71,11 +71,11 @@ func (grok *Grok) AddPatternsFromFile(path string) error {
 	return nil
 }
 
-func (grok *Grok) Compile(pattern string) error {
+func (grok *Grok) Compile(pattern string, onlyRenamed bool) error {
 	p := C.CString(pattern)
 	defer C.free(unsafe.Pointer(p))
 
-	ret := C.grok_compile(grok.g, p)
+	ret := C.grok_compile(grok.g, p, C.int(boolToInt(onlyRenamed)))
 	if ret != GROK_OK {
 		return errors.New(fmt.Sprintf("Failed to compile: %s", C.GoString(grok.g.errstr)))
 	}
@@ -138,7 +138,7 @@ func (pile *Pile) AddPattern(name, str string) {
 	pile.Patterns[name] = str
 }
 
-func (pile *Pile) Compile(pattern string) error {
+func (pile *Pile) Compile(pattern string, onlyRenamed bool) error {
 	grok := New()
 	if grok == nil {
 		return errors.New("Unable to initialize grok!")
@@ -154,7 +154,7 @@ func (pile *Pile) Compile(pattern string) error {
 		}
 	}
 
-	grok.Compile(pattern)
+	grok.Compile(pattern, onlyRenamed)
 	pile.Groks = append(pile.Groks, grok)
 
 	return nil
@@ -239,4 +239,11 @@ func (match *Match) CaptureIntoMap(captures map[string]string) {
    library's `FindIndex`. */
 func (match *Match) FindIndex() []int {
 	return []int{int(match.gm.start), int(match.gm.end)}
+}
+
+func boolToInt(b bool) int {
+  if b {
+    return 1
+  }
+  return 0
 }

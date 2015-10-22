@@ -216,7 +216,7 @@ const char *grok_version();
  * @param grok the grok_t instance to compile into.
  * @param pattern the string regexp pattern to compile.
  */
-int grok_compile(grok_t *grok, const char *pattern);
+int grok_compile(grok_t *grok, const char *pattern, int renamed_only);
 
 /**
  * Compile a pattern with known length.
@@ -225,7 +225,7 @@ int grok_compile(grok_t *grok, const char *pattern);
  * @param length the length of the pattern
  * @see grok_compile()
  */
-int grok_compilen(grok_t *grok, const char *pattern, int length);
+int grok_compilen(grok_t *grok, const char *pattern, int length, int renamed_only);
 
 /**
  * Execute against a string input.

@@ -9,10 +9,10 @@ static int complexity(const grok_t *grok);
 static void grok_discover_global_init() {
   dgrok_init = 1;
   grok_init(&global_discovery_req1_grok);
-  grok_compile(&global_discovery_req1_grok, ".\\b.");
+  grok_compile(&global_discovery_req1_grok, ".\\b.", false);
 
   grok_init(&global_discovery_req2_grok);
-  grok_compile(&global_discovery_req2_grok, "%\\{[^}]+\\}");
+  grok_compile(&global_discovery_req2_grok, "%\\{[^}]+\\}", false);
 }
 
 grok_discover_t *grok_discover_new(grok_t *source_grok) {
@@ -55,7 +55,7 @@ void grok_discover_init(grok_discover_t *gdt, grok_t *source_grok) {
       perror("asprintf failed");
       abort();
     }
-    grok_compile(g, gpattern);
+    grok_compile(g, gpattern, false);
     *key = complexity(g);
 
     /* Low complexity should be skipped */

@@ -13,11 +13,11 @@
 #include "stringhelper.h"
 
 /* internal functions */
-static char *grok_pattern_expand(grok_t *grok); //, int offset, int length);
-static void grok_study_capture_map(grok_t *grok);
+static char *grok_pattern_expand(grok_t *grok, int only_renamed); //, int offset, int length);
+static void grok_study_capture_map(grok_t *grok, int only_renamed);
 
 static void grok_capture_add_predicate(grok_t *grok, int capture_id,
-                                       const char *predicate, int predicate_len);
+                                       const char *predicate, int predicate_len, int renamed_only);
 
 void grok_free_clone(const grok_t *grok) {
   if (grok->re != NULL) {
@@ -52,11 +52,11 @@ void grok_free(grok_t *grok) {
   free(grok);
 }
 
-int grok_compile(grok_t *grok, const char *pattern) {
-  return grok_compilen(grok, pattern, strlen(pattern));
+int grok_compile(grok_t *grok, const char *pattern, int only_renamed) {
+  return grok_compilen(grok, pattern, strlen(pattern), only_renamed);
 }
 
-int grok_compilen(grok_t *grok, const char *pattern, int length) {
+int grok_compilen(grok_t *grok, const char *pattern, int length, int only_renamed) {
   grok_log(grok, LOG_COMPILE, "Compiling '%.*s'", length, pattern);
 
   /* clear the old tctree data */
@@ -67,7 +67,7 @@ int grok_compilen(grok_t *grok, const char *pattern, int length) {
 
   grok->pattern = pattern;
   grok->pattern_len = length;
-  grok->full_pattern = grok_pattern_expand(grok);
+  grok->full_pattern = grok_pattern_expand(grok, only_renamed);
 
   if (grok->full_pattern == NULL) {
     grok_log(grok, LOG_COMPILE, "A failure occurred while compiling '%.*s'",
@@ -90,7 +90,7 @@ int grok_compilen(grok_t *grok, const char *pattern, int length) {
 
   /* Walk grok->captures_by_id.
    * For each, ask grok->re what stringnum it is */
-  grok_study_capture_map(grok);
+  grok_study_capture_map(grok, only_renamed);
 
   return GROK_OK;
 }
@@ -153,7 +153,7 @@ int grok_execn(const grok_t *grok, const char *text, int textlen, grok_match_t *
 }
 
 /* XXX: This method is pretty long; split it up? */
-static char *grok_pattern_expand(grok_t *grok) {
+static char *grok_pattern_expand(grok_t *grok, int renamed_only) {
   int capture_id = 0; /* Starting capture_id, doesn't really matter what this is */
   int offset = 0; /* string offset; how far we've expanded so far */
   int *capture_vector = NULL;
@@ -248,7 +248,7 @@ static char *grok_pattern_expand(grok_t *grok) {
       gct->name_len = strlen(gct->name);
       gct->subname = (char *)subname;
       gct->subname_len = strlen(gct->subname);
-      grok_capture_add(grok, gct);
+      grok_capture_add(grok, gct, renamed_only);
 
       //pcre_free_substring(longname);
       //pcre_free_substring(subname);
@@ -265,7 +265,7 @@ static char *grok_pattern_expand(grok_t *grok) {
                  pend - pstart, full_pattern + pstart);
 
         grok_capture_add_predicate(grok, capture_id, full_pattern + pstart,
-                                   pend - pstart);
+                                   pend - pstart, renamed_only);
         substr_replace(&full_pattern, &full_len, &full_size,
                        end, 0, "(?C1)", 5);
       }
@@ -332,7 +332,8 @@ static char *grok_pattern_expand(grok_t *grok) {
 } /* grok_pattern_expand */
 
 static void grok_capture_add_predicate(grok_t *grok, int capture_id,
-                                       const char *predicate, int predicate_len) {
+                                       const char *predicate, int predicate_len,
+                                       int renamed_only) {
   grok_capture *gct;
   int offset = 0;
 
@@ -359,17 +360,17 @@ static void grok_capture_add_predicate(grok_t *grok, int capture_id,
 
   if (predicate_len > 2) {
     if (!strncmp(predicate, "=~", 2) || !strncmp(predicate, "!~", 2)) {
-      grok_predicate_regexp_init(grok, gct, predicate, predicate_len);
+      grok_predicate_regexp_init(grok, gct, predicate, predicate_len, renamed_only);
       return;
     } else if ((predicate[0] == '$') 
                && (strchr("!<>=", predicate[1]) != NULL)) {
-      grok_predicate_strcompare_init(grok, gct, predicate, predicate_len);
+      grok_predicate_strcompare_init(grok, gct, predicate, predicate_len, renamed_only);
       return;
     }
   } 
   if (predicate_len > 1) {
     if (strchr("!<>=", predicate[0]) != NULL) {
-      grok_predicate_numcompare_init(grok, gct, predicate, predicate_len);
+      grok_predicate_numcompare_init(grok, gct, predicate, predicate_len, renamed_only);
     }  else {
       fprintf(stderr, "Invalid predicate: '%.*s'\n", predicate_len, predicate);
     }
@@ -379,10 +380,10 @@ static void grok_capture_add_predicate(grok_t *grok, int capture_id,
   }
 
   /* update the database with our modified grok_capture */
-  grok_capture_add(grok, gct);
+  grok_capture_add(grok, gct, renamed_only);
 }
 
-static void grok_study_capture_map(grok_t *grok) {
+static void grok_study_capture_map(grok_t *grok, int only_renamed) {
   char *nametable;
   grok_capture *gct;
   int nametable_size;
@@ -414,7 +415,7 @@ static void grok_study_capture_map(grok_t *grok) {
         gct->pcre_capture_number = stringnum;
 
         /* update the database with the new data */
-        grok_capture_add(grok, gct);
+        grok_capture_add(grok, gct, only_renamed);
       }
     } else {
       /* 
@@ -433,7 +434,7 @@ static void grok_study_capture_map(grok_t *grok) {
       gct->name = name;
       gct->pcre_capture_number = stringnum;
       gct->id = -1 * i;
-      grok_capture_add(grok, gct);
+      grok_capture_add(grok, gct, 0);
     }
   }
 }
