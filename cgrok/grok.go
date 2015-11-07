@@ -11,7 +11,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -28,6 +28,7 @@ const (
 
 type Grok struct {
 	g *C.grok_t
+	stringCacheLock sync.RWMutex
 	stringCache map[uintptr]string
 }
 
@@ -35,6 +36,13 @@ type Match struct {
 	gm C.grok_match_t
 	grok *Grok
 	subject string
+
+	/* Iterator state - each match only supports one iterator at a time.
+	   This saves up doing a few heap allocations per group within each match */
+	gname string
+	gsubstring string
+	name *C.char
+	namelen, suboffset, sublen C.int
 }
 
 type Pile struct {
@@ -57,12 +65,16 @@ func New() *Grok {
    With other strings there's a risk of getting the wrong result if memory has been freed and reused. */
 func (grok *Grok) gostringn(str *C.char, len C.int) string {
 	ptr := uintptr(unsafe.Pointer(str))
+	grok.stringCacheLock.RLock()
 	goStr, ok := grok.stringCache[ptr]
+	grok.stringCacheLock.RUnlock()
 	if ok {
 		return goStr
 	}
 	goStr = C.GoStringN(str, len)
+	grok.stringCacheLock.Lock()
 	grok.stringCache[ptr] = goStr
+	grok.stringCacheLock.Unlock()
 	return goStr
 }
 
@@ -218,31 +230,35 @@ func (match *Match) Captures() map[string][]string {
 	return captures
 }
 
-/* Add captures to the map, clobbering existing keys. Only extracts
-   sub-expressions which have been explicitly renamed - `%{DAY}` will not be extracted,
-   but `%{DAY:day}` will be extracted with the key `day`. Sub-expressions with duplicate names
-   will clobber each other as well - the last match will remain. */
-func (match *Match) CaptureIntoMap(captures map[string]string) {
-	var name *C.char
-	var namelen, suboffset, sublen C.int
-
+/* Start an iterator for the match results. The iterator must be free'd when no longer in use.
+   Each match has state for one iterator, multiple concurrent iterators are not supported. */
+func (match *Match) StartIterator() {
 	C.grok_match_walk_init(&match.gm)
+}
 
-	for C.grok_match_walk_next_offsets(&match.gm, &name, &namelen, &suboffset, &sublen) == GROK_OK {
-		gname := match.grok.gostringn(name, namelen)
-		colonIdx := strings.Index(gname, ":")
-		if colonIdx > -1 {
-			/* Do some pointer arithmetic to find the index of the match within the string. The match should always
-                           be between the beginning of the subject and the end, or an empty string */
-			var gsubstring string
-			if int(sublen) > 0 {
-				if int(suboffset) > -1 && int(suboffset + sublen) <= len(match.subject) {
-					gsubstring = match.subject[int(suboffset):int(suboffset + sublen)]
-				}
-			}
-			captures[gname[colonIdx+1:]] = gsubstring
+/* Try to advance the iterator. Returns false at the end of the list of groups. */
+func (match *Match) Next() bool {
+	if C.grok_match_walk_next_offsets(&match.gm, &match.name, &match.namelen, &match.suboffset, &match.sublen) != GROK_OK {
+		return false
+	}
+	match.gname = match.grok.gostringn(match.name, match.namelen)
+	match.gsubstring = ""
+	/* Do some pointer arithmetic to find the index of the match within the string. The match should always
+           be between the beginning of the subject and the end, or an empty string */
+	if int(match.sublen) > 0 {
+		if int(match.suboffset) > -1 && int(match.suboffset + match.sublen) <= len(match.subject) {
+			match.gsubstring = match.subject[int(match.suboffset):int(match.suboffset + match.sublen)]
 		}
 	}
+	return true
+}
+
+/* Get the current group name and substring match from the iterator */
+func (match *Match) Group() (string, string) {
+	return match.gname, match.gsubstring	
+}
+
+func (match *Match) EndIterator() {
 	C.grok_match_walk_end(&match.gm)
 }
 

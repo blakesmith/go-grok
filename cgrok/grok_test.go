@@ -282,26 +282,31 @@ func TestRenamedOnly(t *testing.T) {
 		t.Fatal("Unable to find match!")
 	}
 	captures := make(map[string]string)
-	match.CaptureIntoMap(captures)
+	match.StartIterator()
+	for match.Next() {
+		name, substr :=  match.Group()
+		captures[name] = substr
+	}
+	match.EndIterator()
 	if len(captures) != 5 {
 		t.Fatal("Expected 5 groups to be extracted")
 	}
-	if host := captures["word"]; host != "message" {
+	if host := captures[":word"]; host != "message" {
 		t.Fatal("word should be 'message'")
 	}
-	if day := captures["day"]; day != "Tue" {
+	if day := captures["DAY:day"]; day != "Tue" {
 		t.Fatal("`day` should be 'Tue'")
 	}
 	if _, ok := captures["MONTH"]; ok {
 		t.Fatal("`MONTH` should be ignored")
 	}
-	if year := captures["year"]; year != "2000" {
+	if year := captures[":year"]; year != "2000" {
 		t.Fatal("`year` should be '2000'")
 	}
-	if host := captures["host"]; host != "ALLCAPSHOST" {
+	if host := captures[":host"]; host != "ALLCAPSHOST" {
 		t.Fatal("`host` should be 'ALLCAPSHOST'")
 	}
-	if num := captures["number"]; num != "12345" {
+	if num := captures["BASE10NUM:number"]; num != "12345" {
 		t.Fatal("`number` should be '12345'")
 	}
 }
@@ -338,7 +343,7 @@ func BenchmarkNewGrok(b *testing.B) {
 	}
 }
 
-func BenchmarkNewGrokIntoMap(b *testing.B) {
+func BenchmarkNewGrokIterator(b *testing.B) {
 	g := New()
 	defer g.Free()
 
@@ -347,10 +352,13 @@ func BenchmarkNewGrokIntoMap(b *testing.B) {
 	text := "1124412d476eb4e8c9b691cacfa51bb990eff8169c3337e0be688c1caf1bdaf0 releases.rocana.com [11/Apr/2015:03:27:40 +0000] 10.220.7.37 arn:aws:iam::368902385577:user/mark FC206D08A83F5300 REST.POST.UPLOADS scalingdata-0.7.0.tar.gz \"POST /releases.rocana.com/scalingdata-0.7.0.tar.gz?uploads HTTP/1.1\" 200 - 370 - 8 7 \"-\" \"S3Console/0.4\" -"
 	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
 	g.Compile(pattern, true)
-	attr := make(map[string]string)
 	for i := 0; i < b.N; i++ {
 		m := g.Match(text)
-		m.CaptureIntoMap(attr)
+		m.StartIterator()
+		for m.Next() {
+			m.Group()	
+		}
+		m.EndIterator()
 		m.Free()
 	}
 }
