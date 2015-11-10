@@ -2,8 +2,7 @@ package grok
 
 /*
 #cgo CFLAGS: -I. -std=gnu99
-#cgo windows CFLAGS: -IC:/msys64/mingw64/include
-#cgo windows LDFLAGS: -L. -lportablexdr -lws2_32
+#cgo windows LDFLAGS: -L. -lws2_32
 #include "grok.h"
 */
 import "C"

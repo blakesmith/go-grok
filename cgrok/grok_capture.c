@@ -1,6 +1,5 @@
 #include "grok.h"
 #include "grok_capture.h"
-#include "grok_capture_xdr.h"
 
 #include <assert.h>
 
@@ -200,50 +199,6 @@ int grok_capture_set_extra(grok_t *grok, grok_capture *gct, void *extra) {
   //gct->extra.extra_len = extra;
   //gct->extra.extra_val = extra;
   return 0;
-}
-
-void _grok_capture_encode(grok_capture *gct, char **data_ret,
-                                    int *size_ret) {
-  #define BASE_ALLOC_SIZE 256;
-  XDR xdr;
-  grok_capture local;
-  int alloc_size = BASE_ALLOC_SIZE;
-  *data_ret = NULL;
-
-  /* xdr_string doesn't understand NULL, so replace NULL with "" */
-  memcpy(&local, gct, sizeof(local));
-  if (local.name == NULL) local.name = EMPTYSTR;
-  if (local.subname == NULL) local.subname = EMPTYSTR;
-  if (local.pattern == NULL) local.pattern = EMPTYSTR;
-  if (local.predicate_lib == NULL) local.predicate_lib = EMPTYSTR;
-  if (local.predicate_func_name == NULL) local.predicate_func_name = EMPTYSTR;
-  if (local.extra.extra_val == NULL) local.extra.extra_val = EMPTYSTR;
-
-  do {
-    if (*data_ret == NULL) {
-      *data_ret = malloc(alloc_size);
-    } else {
-      xdr_destroy(&xdr);
-      alloc_size *= 2;
-      //fprintf(stderr, "Growing xdr buffer to %d\n", alloc_size);
-      *data_ret = realloc(*data_ret, alloc_size);
-    }
-    xdrmem_create(&xdr, *data_ret, alloc_size, XDR_ENCODE);
-
-    /* If we get larger than a meg, something is probably wrong. */
-    if (alloc_size > 1<<20) {
-      abort();
-    }
-  } while (xdr_grok_capture(&xdr, &local) == FALSE);
-
-  *size_ret = xdr_getpos(&xdr);
-}
-
-void _grok_capture_decode(grok_capture *gct, char *data, int size) {
-  XDR xdr;
-
-  xdrmem_create(&xdr, data, size, XDR_DECODE);
-  xdr_grok_capture(&xdr, gct);
 }
 
 #define _GCT_STRFREE(gct, member) \

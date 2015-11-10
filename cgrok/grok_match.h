@@ -4,7 +4,7 @@
 #ifndef _GROK_MATCH_H_
 #define _GROK_MATCH_H_
 
-#include "grok_capture_xdr.h"
+#include "grok_capture.h"
 
 typedef struct grok_match {
   /** The grok_t instance that generated this match.

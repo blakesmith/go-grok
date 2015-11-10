@@ -1,9 +1,27 @@
 #ifndef _GROK_CAPTURE_INTERNAL_H_
 #define _GROK_CAPTURE_INTERNAL_H_
 
-#include "grok_capture_xdr.h"
 #include "grok.h"
 
+struct grok_capture {
+	int name_len;
+	char *name;
+	int subname_len;
+	char *subname;
+	int pattern_len;
+	char *pattern;
+	int id;
+	int pcre_capture_number;
+	int predicate_lib_len;
+	char *predicate_lib;
+	int predicate_func_name_len;
+	char *predicate_func_name;
+	struct {
+		uint32_t extra_len;
+		char *extra_val;
+	} extra;
+};
+typedef struct grok_capture grok_capture;
 
 void grok_capture_init(grok_t *grok, grok_capture *gct);
 void grok_capture_free(grok_capture *gct);
