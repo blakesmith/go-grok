@@ -125,8 +125,8 @@ extern int g_cap_definition;
 /** grok_exec did not match your string */
 #define GROK_ERROR_NOMATCH 7
 
-#define CAPTURE_ID_LEN 4
-#define CAPTURE_FORMAT "%04x"
+#define CAPTURE_ID_LEN 6
+#define CAPTURE_FORMAT "0x%04x"
 
 #include "grok_logging.h"
 

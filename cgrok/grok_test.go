@@ -148,7 +148,7 @@ func TestMatchIndices(t *testing.T) {
 	g.Compile("May", false)
 
 	match := g.Match(text)
-	
+
 	idx := match.FindIndex()
 	if idx[0] != 4 {
 		t.Fatal("Expected starting index 4, got", idx[0])
@@ -159,7 +159,7 @@ func TestMatchIndices(t *testing.T) {
 }
 
 /* Support PCRE named captures: they can't start with `_`, and they're
-    prefixed with `:` */
+   prefixed with `:` */
 func TestPCRENamedCaptures(t *testing.T) {
 	g := New()
 	defer g.Free()
@@ -210,6 +210,30 @@ func TestPCRENamedCaptures(t *testing.T) {
 	}
 }
 
+/* Test PCRE named groups of various lengths */
+func TestPCRENamedCaptureHexNum(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	g.AddPatternsFromFile("../patterns/base")
+	text := "ALLCAPSHOST"
+	pattern := "(?P<deadbeef>[A-Z]*)"
+	g.Compile(pattern, false)
+	match := g.Match(text)
+	if match == nil {
+		t.Fatal("Unable to find match!")
+	}
+
+	captures := match.Captures()
+
+	if len(captures[":deadbeef"]) != 1 {
+		t.Fatal("Expected one group named deadbeef")
+	}
+	if host := captures[":deadbeef"][0]; host != "ALLCAPSHOST" {
+		t.Fatal("deadbeef should be 'ALLCAPSHOST'")
+	}
+}
+
 /* Test multiple goroutines using the same Grok concurrently - we use a separate iterator and PCRE vector per match now */
 func TestConcurrentCaptures(t *testing.T) {
 	g := New()
@@ -222,25 +246,25 @@ func TestConcurrentCaptures(t *testing.T) {
 	pattern := "%{WORD:owner} %{NOTSPACE:bucket} \\[%{HTTPDATE:timestamp}\\] %{IP:clientip} %{NOTSPACE:requester} %{NOTSPACE:request_id} %{NOTSPACE:operation} %{NOTSPACE:key} (?:\"%{S3_REQUEST_LINE}\"|-) (?:%{INT:response}|-) (?:-|%{NOTSPACE:error_code}) (?:%{INT:bytes}|-) (?:%{INT:object_size}|-) (?:%{INT:request_time_ms}|-) (?:%{INT:turnaround_time_ms}|-) (?:%{QS:referrer}|-) (?:\"?%{QS:agent}\"?|-) (?:-|%{NOTSPACE:version_id})"
 	g.Compile(pattern, false)
 	var s sync.WaitGroup
-	for i := 0 ; i< 10000; i++ {
-		s.Add(1)	
-		go func(){
+	for i := 0; i < 10000; i++ {
+		s.Add(1)
+		go func() {
 			defer s.Done()
 			for j := 0; j < 5; j++ {
-				if i % 2 == 0 {
+				if i%2 == 0 {
 					match := g.Match(text1)
 					if match == nil {
 						t.Fatal("Unable to match string 1")
 					}
 					captures := match.Captures()
 					if captures["HTTPDATE:timestamp"][0] != "11/Apr/2015:03:27:40 +0000" {
-						t.Fatal("Got unexpected timestamp "+captures["HTTPDATE:timestamp"][0])
-					}	
- 					if captures["QS:agent"][0] != "\"S3Console/0.4\"" {
+						t.Fatal("Got unexpected timestamp " + captures["HTTPDATE:timestamp"][0])
+					}
+					if captures["QS:agent"][0] != "\"S3Console/0.4\"" {
 						t.Fatal("Got unexpected agent " + captures["QS:agent"][0])
 					}
 					if captures["INT:bytes"][0] != "370" {
-						t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
+						t.Fatal("Got unexpected bytes " + captures["INT:bytes"][0])
 					}
 					match.Free()
 				} else {
@@ -250,16 +274,16 @@ func TestConcurrentCaptures(t *testing.T) {
 					}
 					captures := match.Captures()
 					if captures["HTTPDATE:timestamp"][0] != "24/Jul/2015:01:34:43 +0000" {
-						t.Fatal("Got unexpected timestamp "+captures["HTTPDATE:timestamp"][0])
-					}	
- 					if captures["QS:agent"][0] != "\"curl/7.37.1\"" {
-						t.Fatal("Got unexpected agent "+captures["QS:agent"][0])
+						t.Fatal("Got unexpected timestamp " + captures["HTTPDATE:timestamp"][0])
+					}
+					if captures["QS:agent"][0] != "\"curl/7.37.1\"" {
+						t.Fatal("Got unexpected agent " + captures["QS:agent"][0])
 					}
 					if captures["INT:bytes"][0] != "" {
-						t.Fatal("Got unexpected bytes "+captures["INT:bytes"][0])
+						t.Fatal("Got unexpected bytes " + captures["INT:bytes"][0])
 					}
 					if captures["INT:object_size"][0] != "836" {
-						t.Fatal("Got unexpected size "+captures["INT:object_size"][0])
+						t.Fatal("Got unexpected size " + captures["INT:object_size"][0])
 					}
 					match.Free()
 				}
@@ -284,7 +308,7 @@ func TestRenamedOnly(t *testing.T) {
 	captures := make(map[string]string)
 	match.StartIterator()
 	for match.Next() {
-		name, substr :=  match.Group()
+		name, substr := match.Group()
 		captures[name] = substr
 	}
 	match.EndIterator()
@@ -356,7 +380,7 @@ func BenchmarkNewGrokIterator(b *testing.B) {
 		m := g.Match(text)
 		m.StartIterator()
 		for m.Next() {
-			m.Group()	
+			m.Group()
 		}
 		m.EndIterator()
 		m.Free()

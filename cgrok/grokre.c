@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <search.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "grok.h"
 #include "predicates.h"
@@ -383,6 +384,18 @@ static void grok_capture_add_predicate(grok_t *grok, int capture_id,
   grok_capture_add(grok, gct, renamed_only);
 }
 
+/* Parse the group name, up to the max length, and try to parse it as a hex number.
+   Return 0 if the string is not a valid number, or 1 otherwise.*/
+static int grok_parse_capture_id(char* groupName, int *id) {
+	char *endOfNum;
+	if (groupName[0] != '0' || groupName[1] != 'x') {
+		return 0;
+	}
+	errno = 0;
+	*id = strtol(groupName, &endOfNum, 16);
+	return errno == 0 && (endOfNum-groupName) == CAPTURE_ID_LEN;
+}
+
 static void grok_study_capture_map(grok_t *grok, int only_renamed) {
   char *nametable;
   grok_capture *gct;
@@ -405,10 +418,10 @@ static void grok_study_capture_map(grok_t *grok, int only_renamed) {
     stringnum = (nametable[offset] << 8) + nametable[offset + 1];
     char *groupName = nametable + offset + 2;
     capture_id = -1;
-    sscanf(groupName, CAPTURE_FORMAT, &capture_id);
+    int match = grok_parse_capture_id(groupName, &capture_id);
 
     // If scanf didn't extract a number, this isn't a Grok capture group
-    if (capture_id >= 0) {
+    if (match == 1) {
       grok_log(grok, LOG_COMPILE, "Studying capture %d", capture_id);
       gct = (grok_capture *)grok_capture_get_by_id(grok, capture_id);
       if (gct) {
