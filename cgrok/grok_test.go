@@ -312,6 +312,9 @@ func TestRenamedOnly(t *testing.T) {
 		name, substr := match.Group()
 		captures[name] = substr
 	}
+	if err := match.Error(); err != nil {
+		t.Fatal(err)
+	}
 	match.EndIterator()
 	if len(captures) != 5 {
 		t.Fatal("Expected 5 groups to be extracted")
@@ -381,6 +384,9 @@ func BenchmarkNewGrokIterator(b *testing.B) {
 		m := g.Match(text)
 		m.StartIterator()
 		for m.Next() {
+			if err := m.Error(); err != nil {
+				b.Fatal(err)
+			}
 			m.Group()
 		}
 		m.EndIterator()
@@ -407,6 +413,9 @@ func TestMoreThan128NamedGroups(t *testing.T) {
 		if name, substr := m.Group(); substr != expected[name] {
 			t.Fatalf("Text %q from group %v didn't match expected value %v", substr, name, expected[name])
 		}
+	}
+	if err := m.Error(); err != nil {
+		t.Fatal(err)
 	}
 	m.EndIterator()
 	m.Free()

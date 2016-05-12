@@ -35,6 +35,7 @@ type Match struct {
 	gm      C.grok_match_t
 	grok    *Grok
 	subject string
+	err     error
 
 	/* Iterator state - each match only supports one iterator at a time.
 	   This saves up doing a few heap allocations per group within each match */
@@ -235,7 +236,7 @@ func (match *Match) StartIterator() {
 	C.grok_match_walk_init(&match.gm)
 }
 
-/* Try to advance the iterator. Returns false at the end of the list of groups. */
+/* Try to advance the iterator. Returns false at the end of the list of groups or if there's an error - check Error() to ensure you've seen all the groups */
 func (match *Match) Next() bool {
 	match.sublen = 0
 	match.namelen = 0
@@ -251,9 +252,17 @@ func (match *Match) Next() bool {
 		matchEnd := int(match.suboffset) + int(match.sublen)
 		if int(match.suboffset) > -1 && matchEnd <= len(match.subject) {
 			match.gsubstring = match.subject[int(match.suboffset):matchEnd]
+		} else {
+			match.err = fmt.Errorf("Invalid values for subgroup match position: group %q offset %v len %v", match.gname, match.suboffset, match.sublen)
+			return false
 		}
 	}
 	return true
+}
+
+/* Get an error, if one occurred while iterating over the match */
+func (match *Match) Error() error {
+	return match.err
 }
 
 /* Get the current group name and substring match from the iterator */
