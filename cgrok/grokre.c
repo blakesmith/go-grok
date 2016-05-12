@@ -397,13 +397,13 @@ static int grok_parse_capture_id(char* groupName, int *id) {
 }
 
 static void grok_study_capture_map(grok_t *grok, int only_renamed) {
-  char *nametable;
+  unsigned char *nametable;
   grok_capture *gct;
   int nametable_size;
   int nametable_entrysize;
   int i = 0;
   int offset = 0;
-  int stringnum;
+  unsigned int stringnum;
   int capture_id;
 
   pcre_fullinfo(grok->re, NULL, PCRE_INFO_NAMECOUNT, &nametable_size);

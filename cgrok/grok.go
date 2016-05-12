@@ -26,21 +26,21 @@ const (
 )
 
 type Grok struct {
-	g *C.grok_t
+	g               *C.grok_t
 	stringCacheLock sync.RWMutex
-	stringCache map[uintptr]string
+	stringCache     map[uintptr]string
 }
 
 type Match struct {
-	gm C.grok_match_t
-	grok *Grok
+	gm      C.grok_match_t
+	grok    *Grok
 	subject string
 
 	/* Iterator state - each match only supports one iterator at a time.
 	   This saves up doing a few heap allocations per group within each match */
-	gname string
-	gsubstring string
-	name *C.char
+	gname                      string
+	gsubstring                 string
+	name                       *C.char
 	namelen, suboffset, sublen C.int
 }
 
@@ -60,7 +60,7 @@ func New() *Grok {
 	return grok
 }
 
-/* Only look up group names, which live as long as the grok and are frequently reused. 
+/* Only look up group names, which live as long as the grok and are frequently reused.
    With other strings there's a risk of getting the wrong result if memory has been freed and reused. */
 func (grok *Grok) gostringn(str *C.char, len C.int) string {
 	ptr := uintptr(unsafe.Pointer(str))
@@ -126,7 +126,7 @@ func (grok *Grok) Match(text string) *Match {
 	match := new(Match)
 	match.gm = cmatch
 	match.grok = grok
-	match.subject = text	
+	match.subject = text
 	return match
 }
 
@@ -237,16 +237,20 @@ func (match *Match) StartIterator() {
 
 /* Try to advance the iterator. Returns false at the end of the list of groups. */
 func (match *Match) Next() bool {
+	match.sublen = 0
+	match.namelen = 0
+	match.suboffset = 0
 	if C.grok_match_walk_next_offsets(&match.gm, &match.name, &match.namelen, &match.suboffset, &match.sublen) != GROK_OK {
 		return false
 	}
 	match.gname = match.grok.gostringn(match.name, match.namelen)
 	match.gsubstring = ""
 	/* Do some pointer arithmetic to find the index of the match within the string. The match should always
-           be between the beginning of the subject and the end, or an empty string */
+	   be between the beginning of the subject and the end, or an empty string */
 	if int(match.sublen) > 0 {
-		if int(match.suboffset) > -1 && int(match.suboffset + match.sublen) <= len(match.subject) {
-			match.gsubstring = match.subject[int(match.suboffset):int(match.suboffset + match.sublen)]
+		matchEnd := int(match.suboffset) + int(match.sublen)
+		if int(match.suboffset) > -1 && matchEnd <= len(match.subject) {
+			match.gsubstring = match.subject[int(match.suboffset):matchEnd]
 		}
 	}
 	return true
@@ -254,7 +258,7 @@ func (match *Match) Next() bool {
 
 /* Get the current group name and substring match from the iterator */
 func (match *Match) Group() (string, string) {
-	return match.gname, match.gsubstring	
+	return match.gname, match.gsubstring
 }
 
 func (match *Match) EndIterator() {
@@ -269,7 +273,7 @@ func (match *Match) Free() {
 	C.grok_match_free(&match.gm)
 }
 
-/* Returns an array of two integers, where the first is the starting index of the match, and 
+/* Returns an array of two integers, where the first is the starting index of the match, and
    the second is the last index of the match. This is the same convention as the Golang regexp
    library's `FindIndex`. */
 func (match *Match) FindIndex() []int {
@@ -277,8 +281,8 @@ func (match *Match) FindIndex() []int {
 }
 
 func boolToInt(b bool) int {
-  if b {
-    return 1
-  }
-  return 0
+	if b {
+		return 1
+	}
+	return 0
 }

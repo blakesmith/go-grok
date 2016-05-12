@@ -1,6 +1,7 @@
 package grok
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -385,4 +386,28 @@ func BenchmarkNewGrokIterator(b *testing.B) {
 		m.EndIterator()
 		m.Free()
 	}
+}
+
+func TestMoreThan128NamedGroups(t *testing.T) {
+	g := New()
+	defer g.Free()
+
+	pattern := "(?P<Group0>[a-z]) (?P<Group1>[a-z]) (?P<Group2>[a-z]) (?P<Group3>[a-z]) (?P<Group4>[a-z]) (?P<Group5>[a-z]) (?P<Group6>[a-z]) (?P<Group7>[a-z]) (?P<Group8>[a-z]) (?P<Group9>[a-z]) (?P<Group10>[a-z]) (?P<Group11>[a-z]) (?P<Group12>[a-z]) (?P<Group13>[a-z]) (?P<Group14>[a-z]) (?P<Group15>[a-z]) (?P<Group16>[a-z]) (?P<Group17>[a-z]) (?P<Group18>[a-z]) (?P<Group19>[a-z]) (?P<Group20>[a-z]) (?P<Group21>[a-z]) (?P<Group22>[a-z]) (?P<Group23>[a-z]) (?P<Group24>[a-z]) (?P<Group25>[a-z]) (?P<Group26>[a-z]) (?P<Group27>[a-z]) (?P<Group28>[a-z]) (?P<Group29>[a-z]) (?P<Group30>[a-z]) (?P<Group31>[a-z]) (?P<Group32>[a-z]) (?P<Group33>[a-z]) (?P<Group34>[a-z]) (?P<Group35>[a-z]) (?P<Group36>[a-z]) (?P<Group37>[a-z]) (?P<Group38>[a-z]) (?P<Group39>[a-z]) (?P<Group40>[a-z]) (?P<Group41>[a-z]) (?P<Group42>[a-z]) (?P<Group43>[a-z]) (?P<Group44>[a-z]) (?P<Group45>[a-z]) (?P<Group46>[a-z]) (?P<Group47>[a-z]) (?P<Group48>[a-z]) (?P<Group49>[a-z]) (?P<Group50>[a-z]) (?P<Group51>[a-z]) (?P<Group52>[a-z]) (?P<Group53>[a-z]) (?P<Group54>[a-z]) (?P<Group55>[a-z]) (?P<Group56>[a-z]) (?P<Group57>[a-z]) (?P<Group58>[a-z]) (?P<Group59>[a-z]) (?P<Group60>[a-z]) (?P<Group61>[a-z]) (?P<Group62>[a-z]) (?P<Group63>[a-z]) (?P<Group64>[a-z]) (?P<Group65>[a-z]) (?P<Group66>[a-z]) (?P<Group67>[a-z]) (?P<Group68>[a-z]) (?P<Group69>[a-z]) (?P<Group70>[a-z]) (?P<Group71>[a-z]) (?P<Group72>[a-z]) (?P<Group73>[a-z]) (?P<Group74>[a-z]) (?P<Group75>[a-z]) (?P<Group76>[a-z]) (?P<Group77>[a-z]) (?P<Group78>[a-z]) (?P<Group79>[a-z]) (?P<Group80>[a-z]) (?P<Group81>[a-z]) (?P<Group82>[a-z]) (?P<Group83>[a-z]) (?P<Group84>[a-z]) (?P<Group85>[a-z]) (?P<Group86>[a-z]) (?P<Group87>[a-z]) (?P<Group88>[a-z]) (?P<Group89>[a-z]) (?P<Group90>[a-z]) (?P<Group91>[a-z]) (?P<Group92>[a-z]) (?P<Group93>[a-z]) (?P<Group94>[a-z]) (?P<Group95>[a-z]) (?P<Group96>[a-z]) (?P<Group97>[a-z]) (?P<Group98>[a-z]) (?P<Group99>[a-z]) (?P<Group100>[a-z]) (?P<Group101>[a-z]) (?P<Group102>[a-z]) (?P<Group103>[a-z]) (?P<Group104>[a-z]) (?P<Group105>[a-z]) (?P<Group106>[a-z]) (?P<Group107>[a-z]) (?P<Group108>[a-z]) (?P<Group109>[a-z]) (?P<Group110>[a-z]) (?P<Group111>[a-z]) (?P<Group112>[a-z]) (?P<Group113>[a-z]) (?P<Group114>[a-z]) (?P<Group115>[a-z]) (?P<Group116>[a-z]) (?P<Group117>[a-z]) (?P<Group118>[a-z]) (?P<Group119>[a-z]) (?P<Group120>[a-z]) (?P<Group121>[a-z]) (?P<Group122>[a-z]) (?P<Group123>[a-z]) (?P<Group124>[a-z]) (?P<Group125>[a-z]) (?P<Group126>[a-z]) (?P<Group127>[a-z]) (?P<Group128>[a-z]) (?P<Group129>[a-z]) (?P<Group130>[a-z]) (?P<Group131>[a-z]) (?P<Group132>[a-z]) (?P<Group133>[a-z]) (?P<Group134>[a-z]) (?P<Group135>[a-z]) (?P<Group136>[a-z]) (?P<Group137>[a-z]) (?P<Group138>[a-z]) (?P<Group139>[a-z]) (?P<Group140>[a-z]) (?P<Group141>[a-z]) (?P<Group142>[a-z]) (?P<Group143>[a-z]) (?P<Group144>[a-z]) (?P<Group145>[a-z]) (?P<Group146>[a-z]) (?P<Group147>[a-z]) (?P<Group148>[a-z]) (?P<Group149>[a-z])"
+	text := ""
+	expected := make(map[string]string)
+	for i := 0; i < 150; i++ {
+		text += string('a' + (i % 26))
+		text += " "
+		expected[fmt.Sprintf(":Group%v", i)] = string('a' + (i % 26))
+	}
+	g.Compile(pattern, true)
+	m := g.Match(text)
+	m.StartIterator()
+	for m.Next() {
+		if name, substr := m.Group(); substr != expected[name] {
+			t.Fatalf("Text %q from group %v didn't match expected value %v", substr, name, expected[name])
+		}
+	}
+	m.EndIterator()
+	m.Free()
 }
