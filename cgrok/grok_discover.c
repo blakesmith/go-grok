@@ -72,7 +72,7 @@ void grok_discover_init(grok_discover_t *gdt, grok_t *source_grok) {
              *(int *)key, namelen, name);
     while (!tctreeputkeep(gdt->complexity_tree, key, sizeof(int), 
                           g, sizeof(grok_t))) {
-      *key--;
+      *key -= 1;
     }
     //grok_free_clone(g);
     //free(key);
