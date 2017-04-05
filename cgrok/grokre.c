@@ -306,7 +306,7 @@ static char *grok_pattern_expand(grok_t *grok, int renamed_only) {
 
     if (pattern_regex_needs_free) {
       /* If we need to free,   */
-      free(pattern_regex);
+      free((void *)pattern_regex);
     }
     if (patname != NULL) {
       pcre_free_substring(patname);
@@ -397,7 +397,7 @@ static int grok_parse_capture_id(char* groupName, int *id) {
 }
 
 static void grok_study_capture_map(grok_t *grok, int only_renamed) {
-  unsigned char *nametable;
+  char *nametable;
   grok_capture *gct;
   int nametable_size;
   int nametable_entrysize;
