@@ -181,6 +181,7 @@ func (match *Match) Captures() map[string][]string {
 		var substrings []string
 
 		gname := C.GoStringN(name, namelen)
+		defer C.free(unsafe.Pointer(name))      // mem leak
 		gsubstring := C.GoStringN(substring, sublen)
 
 		if val := captures[gname]; val == nil {
